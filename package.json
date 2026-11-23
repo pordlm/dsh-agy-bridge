@@ -1,0 +1,55 @@
+{
+  "name": "dsh-agy-bridge",
+  "version": "0.4.0",
+  "private": false,
+  "type": "module",
+  "description": "Dual-channel Antigravity bridge for DeepSeek Harness: task tools, a Web panel with DSH session attachments, and an independent native agy ACP model provider (no Google upstream proxy).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pordlm/dsh-agy-bridge.git"
+  },
+  "homepage": "https://github.com/pordlm/dsh-agy-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/pordlm/dsh-agy-bridge/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client/index.js",
+    "./panel": "./client/panel.js",
+    "./locale": "./client/locale.js",
+    "./preset": "./preset/index.js",
+    "./preset/tool-scope": "./preset/tool-scope.js",
+    "./remote": "./lib/web-remote.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib/**/*.js",
+    "client/**/*.js",
+    "preset/**/*.js",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.4"
+  }
+}

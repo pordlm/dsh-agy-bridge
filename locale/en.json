@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Antigravity bridge",
+    "description": "Sends tasks into the local Antigravity app and wakes this DSH agent when Antigravity replies.",
+    "detail": "docs/DETAIL.md"
+  },
+  "auth": {
+    "label": "Antigravity CLI auth",
+    "login": "Sign in to Antigravity CLI",
+    "loggingIn": "Starting sign-in…",
+    "refresh": "Refresh auth status",
+    "statusLoggedin": "Signed in",
+    "statusUnauthenticated": "Not signed in",
+    "statusUnknown": "Status unknown",
+    "statusChecking": "Checking…",
+    "unauthenticatedHint": "Antigravity CLI is not signed in. Click \"Sign in to Antigravity CLI\" to authorize.",
+    "privacy": "Checks CLI execution and protocol status only. Never reads, uploads or stores credentials. Official CLI handles sign-in.",
+    "installHint": "Install from https://antigravity.google/download and run agy --version.",
+    "terminalHint": "Launched agy acp --login in a visible terminal. Complete sign-in there or in the browser, then click \"Refresh auth status\"."
+  },
+  "cli": {
+    "title": "Antigravity CLI status",
+    "availability": "CLI availability",
+    "available": "Available",
+    "missing": "Missing",
+    "unusable": "Unusable",
+    "version": "Version",
+    "executable": "Executable",
+    "dataDir": "Data directory",
+    "dataDirMissing": "Not configured",
+    "writable": "Writable",
+    "notWritable": "Not writable",
+    "dataDirError": "Data directory is not writable: {detail}",
+    "loginState": "Sign-in state",
+    "statusUnknown": "Unknown",
+    "statusLoggedin": "Signed in",
+    "statusUnauthenticated": "Not signed in",
+    "unknownReason": "Reason: authMethods={methods}, session/new={session}",
+    "unknownReasonProtocol": "The protocol cannot distinguish signed-in from signed-out: authMethods is identical in both states, session/new succeeds in both, and agy models / agy agents exit non-zero; this panel will never assert signed-in.",
+    "refresh": "Refresh status",
+    "openLogin": "Open login terminal",
+    "probeFailed": "Status probe failed: {detail}",
+    "remoteUnavailable": "Host channel unavailable; cannot probe CLI status.",
+    "unknownValue": "unknown",
+    "notProbed": "Not probed",
+    "reasonMissing": "No usable agy CLI on this machine (missing or not executable).",
+    "reasonDataDir": "CLI data directory is not configured or not writable; sign-in state cannot be confirmed.",
+    "reasonProbeFailed": "The status probe failed; sign-in state cannot be determined.",
+    "reasonBridgeClosed": "The bridge is closed; CLI status cannot be probed.",
+    "unknownReasonCode": "Reason code: {code}",
+    "flowTerminal": "A visible terminal is running agy acp --login; click \"Refresh status\" when it finishes.",
+    "flowAlreadyLoggedIn": "The CLI reports an existing sign-in; no new authorization needed.",
+    "flowNone": "The login flow cannot start; install the CLI or configure the data directory first.",
+    "bridgeMessage": "CLI message: {detail}"
+  },
+  "activity": {
+    "title": "Antigravity activity",
+    "readonly": "Read-only activity reported by Antigravity",
+    "empty": "No tool activity in this turn",
+    "error": "Could not read activity",
+    "kind": {
+      "execute": "Execute",
+      "edit": "Edit",
+      "read": "Read",
+      "other": "Other",
+      "unknown": "Unknown"
+    }
+  },
+  "thought": {
+    "summary": "Thinking summary"
+  },
+  "nativeActivity": {
+    "title": "Native ACP activity",
+    "readonly": "Read-only activity from native ACP session",
+    "empty": "No native tool activity in this session",
+    "truncated": "Showing most recent activity entries",
+    "localDerivedNote": "Note: updatedAt, source, and truncated are locally derived by the plugin, not ACP native fields."
+  }
+}

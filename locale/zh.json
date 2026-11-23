@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Antigravity 桥",
+    "description": "把任务发到本机 Antigravity 应用，并在它的模型回复时唤醒本 DSH 智能体读取。",
+    "detail": "docs/DETAIL.md"
+  },
+  "auth": {
+    "label": "Antigravity CLI 登录",
+    "login": "登录 Antigravity CLI",
+    "loggingIn": "正在发起登录…",
+    "refresh": "刷新登录状态",
+    "statusLoggedin": "已登录",
+    "statusUnauthenticated": "未登录",
+    "statusUnknown": "状态未知",
+    "statusChecking": "检查中…",
+    "unauthenticatedHint": "Antigravity CLI 尚未登录，请点击“登录 Antigravity CLI”完成官方授权。",
+    "privacy": "仅检测 CLI 可执行性与协议状态；不读取、不上传、不存储凭据。登录由官方 CLI 处理。",
+    "installHint": "请从 https://antigravity.google/download 安装，并运行 agy --version 自检。",
+    "terminalHint": "已在可见终端启动 agy acp --login，请在终端或浏览器完成登录后点击“刷新登录状态”。"
+  },
+  "cli": {
+    "title": "Antigravity CLI 状态",
+    "availability": "CLI 可用性",
+    "available": "可用",
+    "missing": "未安装",
+    "unusable": "不可用",
+    "version": "版本",
+    "executable": "可执行文件",
+    "dataDir": "数据目录",
+    "dataDirMissing": "未配置",
+    "writable": "可写",
+    "notWritable": "不可写",
+    "dataDirError": "数据目录不可写：{detail}",
+    "loginState": "登录状态",
+    "statusUnknown": "未知",
+    "statusLoggedin": "已登录",
+    "statusUnauthenticated": "未登录",
+    "unknownReason": "原因：authMethods={methods}，session/new={session}",
+    "unknownReasonProtocol": "协议无法区分已登录/未登录：authMethods 在两种状态下相同、session/new 均成功、agy models / agy agents 均非 0 退出；本面板不会据此断言已登录。",
+    "refresh": "刷新状态",
+    "openLogin": "打开登录终端",
+    "probeFailed": "状态探测失败：{detail}",
+    "remoteUnavailable": "Host 通道不可用，无法探测 CLI 状态。",
+    "unknownValue": "未知",
+    "notProbed": "尚未探测",
+    "reasonMissing": "本机没有可用的 agy CLI（未安装或无法执行）。",
+    "reasonDataDir": "CLI 数据目录未配置或不可写，无法确认登录态。",
+    "reasonProbeFailed": "状态探针执行失败，无法判定登录态。",
+    "reasonBridgeClosed": "桥已关闭，无法探测 CLI 状态。",
+    "unknownReasonCode": "原因代码：{code}",
+    "flowTerminal": "已打开可见终端运行 agy acp --login，完成后点“刷新状态”。",
+    "flowAlreadyLoggedIn": "CLI 报告已登录，无需再次授权。",
+    "flowNone": "当前无法启动登录流程，请先安装 CLI 或配置数据目录。",
+    "bridgeMessage": "CLI 返回：{detail}"
+  },
+  "activity": {
+    "title": "Antigravity 活动流",
+    "readonly": "来自 Antigravity 的只读活动",
+    "empty": "本轮没有工具活动",
+    "error": "活动流读取失败",
+    "kind": {
+      "execute": "执行",
+      "edit": "编辑",
+      "read": "读取",
+      "other": "其它",
+      "unknown": "未知"
+    }
+  },
+  "thought": {
+    "summary": "思考概况"
+  },
+  "nativeActivity": {
+    "title": "原生 ACP 活动流",
+    "readonly": "来自原生 ACP 会话的只读活动",
+    "empty": "本会话暂无原生工具活动",
+    "truncated": "仅保留最近部分活动记录",
+    "localDerivedNote": "说明：updatedAt、source、truncated 为插件本地派生字段，非 ACP 原生字段。"
+  }
+}

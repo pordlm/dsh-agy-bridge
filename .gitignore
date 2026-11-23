@@ -1,0 +1,22 @@
+# 依赖
+node_modules/
+
+# 运行期状态与本地产物
+state.json
+*.log
+tmp-*/
+tmp*/
+.patch-*.cjs
+
+# 备份与发布包（不入库）
+*.bak
+*.before-deploy*
+package.backup-*
+package.pre-rebuild-*
+dist/
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

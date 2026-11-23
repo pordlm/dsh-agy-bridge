@@ -1,0 +1,27 @@
+- insert:
+    - id: antigravity-bridge
+      name: 'dsh-agy-bridge'
+      config:
+        agyExecutable: 'agy'
+        agyArgs:
+          - 'acp'
+        defaultModel: ''
+        defaultEffort: ''
+        autoWake: true
+        pollMs: 4000
+        waitPollMs: 900
+        maxReplyChars: 20000
+        maxAttachments: 10
+        maxAttachmentBytes: 10485760
+        maxTotalAttachmentBytes: 20971520
+        permissionPolicy: 'reject'
+        acpToolBridge: false
+        acpPermissionPolicy: 'reject'
+        stateFile: ''
+        modelProvider: true
+        model: ''
+        models: []
+        efforts: []
+    - id: antigravity-bridge-preset
+      name: 'dsh-agy-bridge/preset'
+      config: {}
