@@ -1784,10 +1784,123 @@ test('T51: acpToolBridge=true streams reasoning blocks before bridged tool-call/
   assert.equal(chunks.at(-1)?.reason?.kind, 'tool-calls')
 })
 
+test('T52: assistant history with text + reasoning skips reasoning without throwing or leaking into prompt/systemText', async () => {
+  const secret = 'SECRET-REASONING-BLOCK-7'
+  const transport = new StubTransport(['HELLO', 'SECOND'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const u1 = user('first', 'u-1')
+  const opts1 = { sessionId: 's-t52', model: 'gpt-5', reasoningEffort: 'medium', system: 'stable sys', messages: [u1] }
+  const plan1 = planRequest(opts1)
+  await collect(adapter, opts1)
+
+  const a1 = assistant([{ type: 'text', text: 'HELLO' }, { type: 'reasoning', text: secret }], 'a-1')
+  const u2 = user('follow up', 'u-2')
+  const opts2 = { sessionId: 's-t52', model: 'gpt-5', reasoningEffort: 'medium', system: 'stable sys', messages: [u1, a1, u2] }
+  const plan2 = planRequest(opts2)
+  const chunks2 = await collect(adapter, opts2)
+
+  assert.equal(chunks2.at(-1)?.reason?.kind, 'stop')
+  assert.equal(plan2.history[1].text, 'HELLO')
+  assert.equal(plan2.systemText, plan1.systemText)
+  assert.equal(transport.prompts.length, 2)
+  assert.equal(transport.prompts[1].prompt[0].text, 'follow up')
+  assert.equal(JSON.stringify(transport.prompts[1]).includes(secret), false)
+  assert.equal(JSON.stringify(plan2).includes(secret), false)
+})
+
+test('T53: assistant history with only reasoning block is treated as empty text with zero prompt/planRequest leakage', async () => {
+  const secret = 'ONLY-THINKING'
+  const transport = new StubTransport(['', 'next ok'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const u1 = user('first', 'u-1')
+  await collect(adapter, { sessionId: 's-t53', model: 'gpt-5', reasoningEffort: 'medium', messages: [u1] })
+
+  const a1 = assistant([{ type: 'reasoning', text: secret }], 'a-1')
+  const u2 = user('continue', 'u-2')
+  const opts2 = { sessionId: 's-t53', model: 'gpt-5', reasoningEffort: 'medium', messages: [u1, a1, u2] }
+  const plan2 = planRequest(opts2)
+  assert.equal(plan2.history[1].text, '')
+  assert.equal(JSON.stringify(plan2).includes(secret), false)
+
+  const chunks2 = await collect(adapter, opts2)
+  assert.equal(chunks2.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transport.prompts.length, 2)
+  assert.equal(JSON.stringify(transport.prompts).includes(secret), false)
+})
+
+test('T54: assistant history with image block still throws ERROR_CODES.UNSUPPORTED_CONTENT', async () => {
+  const badHistory = [
+    user('first', 'u-1'),
+    assistant([{ type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' }], 'a-1'),
+    user('next', 'u-2'),
+  ]
+  assert.throws(
+    () => planRequest({ messages: badHistory }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_CONTENT && err.message.includes('"image"'),
+  )
+})
+
+test('T55: assistant history with text + reasoning succeeds and real transport session/prompt contains HELLO without SECRET', async () => {
+  const secret = 'SECRET-REASONING-BLOCK-7'
+  const transport = new StubTransport(['HELLO', 'SECOND'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const u1 = user('first', 'u-1')
+  await collect(adapter, { sessionId: 's-t55', model: 'gpt-5', reasoningEffort: 'medium', messages: [u1] })
+
+  const a1 = assistant([{ type: 'text', text: 'HELLO' }, { type: 'reasoning', text: secret }], 'a-1')
+  const u2 = user('follow up with HELLO', 'u-2')
+  const chunks2 = await collect(adapter, {
+    sessionId: 's-t55',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [u1, a1, u2],
+  })
+  assert.equal(chunks2.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transport.prompts.length, 2)
+  const sentTurn2 = JSON.stringify(transport.prompts[1])
+  assert.ok(sentTurn2.includes('HELLO'))
+  assert.equal(sentTurn2.includes(secret), false)
+})
+
+test('T56: user message containing reasoning block throws ERROR_CODES.UNSUPPORTED_CONTENT with zero prompt', async () => {
+  const transport = new StubTransport(['ok'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const before = transport.prompts.length
+  await assert.rejects(
+    () => collect(adapter, {
+      sessionId: 's-t56',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [{ id: 'u-1', role: 'user', content: [{ type: 'reasoning', text: 'INJECT-VIA-USER' }] }],
+    }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_CONTENT && err.message.includes('"reasoning"'),
+  )
+  assert.equal(transport.prompts.length, before)
+})
+
+test('T57: system message containing reasoning block throws ERROR_CODES.UNSUPPORTED_CONTENT with zero prompt', async () => {
+  const transport = new StubTransport(['ok'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const before = transport.prompts.length
+  await assert.rejects(
+    () => collect(adapter, {
+      sessionId: 's-t57',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [
+        { role: 'system', content: [{ type: 'reasoning', text: 'INJECT-VIA-SYS' }] },
+        user('hello', 'u-1'),
+      ],
+    }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_CONTENT && err.message.includes('"reasoning"'),
+  )
+  assert.equal(transport.prompts.length, before)
+})
+
 let summaryPrinted = false
 process.on('exit', (code) => {
   if (!summaryPrinted && code === 0) {
     summaryPrinted = true
-    console.log('tool-call-bridge-test: 51/51 passed')
+    console.log('tool-call-bridge-test: 57/57 passed')
   }
 })

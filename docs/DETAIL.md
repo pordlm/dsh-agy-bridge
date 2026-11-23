@@ -304,6 +304,10 @@ enabled: false })`，再对同一 target 设置 `enabled: true`，即可在同�
 - **隐私**：插件不读取凭据文件、不存储/上传凭据。官方 CLI 本身会管理其配置数据，这是官方登录的一部分；插件不会复制登录输出。验收 TEMP 复制为单独授权的不透明测试，非产品运行行为。
 - **离线夹具与真实差异**：旧第29组使用可注入 backend 的独立 `authStatus` 模拟可判别后端，只覆盖 UI/路由/认证回查，不作为 agy 1.5.14 真机已登录证据。独立 login-entry 测试强制验证官方当前无此方法时两种 authMethods 均保持 unknown。
 - **实测证据**：可见 PowerShell PID 38992、窗口句柄 11210388，子 conhost 73176、agy 81924；仅按自有 PID 树终止。共享 CLI 数据 919→919、元数据零变化，TEMP 已删除。完整对照表与测试见 `results/login-entry.md`（工作区仓库根）。
+## 界面文案与技术证据
+
+面板侧栏默认只展示面向用户的结论与下一步动作（如 `cli.unknownReason`、`cli.probeFailed`、`cli.bridgeMessage`、`nativeActivity.localDerivedNote`），不把协议字段、原始错误码或内部探测细节直接暴露在主界面，以减少阅读干扰并避免误导。登录态为何显示「未知（查不到）」的技术依据保留在本文档「Antigravity CLI 登录入口」一节与 `results/login-entry.md`：在 `agy` 1.5.x 的静默检测中，已登录与未登录两种状态的 `initialize.authMethods` 完全一致、`session/new` 均返回成功，且 `agy models` / `agy agents` 均非 0 退出，因此协议层无可靠判据，面板（`cli.unknownReasonProtocol`）绝不代为断言已登录。探测失败、CLI 附加提示与面板错误行均已移除前端 `{detail}` 与原始错误码拼接，完整的原始 detail、错误码及协议返回可在 Host/ACP 日志与对应工具返回值中排查（仅 `cli.dataDirError` 保留路径/权限相关的 `{detail}` 以便定位目录问题）。原生会话活动流中本地派生的 `updatedAt`、`source`、`truncated` 字段语义同样记录在本文档「原生工具事件语义」一节，界面仅作面向用户的人话说明。
+
 ## 已知限制
 
 - 真实账户、真实 `agy` ACP 会话与 Antigravity 桌面 UUID 的互通**未验证**。ACP

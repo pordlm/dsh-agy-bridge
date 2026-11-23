@@ -57,23 +57,23 @@ const zh = {
   'state.idle': '空闲',
   'state.pending': '派发中',
   'state.accepted': '已受理',
-  'state.acceptanceUnknown': '送达未确认（只查询状态，不重发）',
+  'state.acceptanceUnknown': '送达状态未确认，不会自动重发。请查看状态后再决定。',
   'state.busy': '运行中',
   'state.replied': '已有最终回复',
   'state.failed': '失败',
   'state.cancelled': '已取消',
   'state.notSent': '未发送',
   'state.unknown': '状态未知',
-  'banner.noSession': '无法确认当前会话身份，面板已停用',
-  'banner.noRemote': 'Host 通道不可用：仅显示说明，不派发',
-  'banner.capabilitiesFailed': '读取后端能力失败',
-  'banner.crossSession': '该任务不属于当前会话，已拒绝读写',
+  'banner.noSession': '未识别当前会话，面板已停用。请刷新或重新打开会话。',
+  'banner.noRemote': '本地服务未连接，当前只读展示，无法发送任务。',
+  'banner.capabilitiesFailed': '无法读取后端状态，功能暂不可用。请刷新重试。',
+  'banner.crossSession': '该任务属于其他会话，已禁止读写。请切回对应会话查看。',
   'reply.label': '最终回复',
   'reply.empty': '暂无最终回复',
   'reply.truncated': '回复较长，已在面板中折叠显示',
   'permission.title': 'Antigravity 正在等待你的许可',
   'permission.hint': '请在 Antigravity 窗口中处理；本面板不会自动批准权限。',
-  'error.label': '错误',
+  'error.label': '操作未能完成。请重试，如仍失败请查看日志。',
   'limits.message': '任务内容不能超过 {limit} 个字符',
   'limits.paths': 'Host 路径附件最多 {limit} 个',
   'auth.label': 'Antigravity CLI 登录',
@@ -84,10 +84,11 @@ const zh = {
   'auth.statusUnauthenticated': '未登录',
   'auth.statusUnknown': '状态未知',
   'auth.statusChecking': '检查中…',
-  'auth.unauthenticatedHint': 'Antigravity CLI 尚未登录，请完成官方授权。',
-  'auth.terminalHint': '点“登录 Antigravity CLI”打开终端，完成官方授权后点“刷新登录状态”；CLI 1.5.x 的静默检测仍可能显示未知。',
-  'auth.privacy': '仅检测 CLI 可执行性与协议状态；不读取、不上传、不存储凭据。登录由官方 CLI 在终端处理。静默检测不发送模型请求。',
-  'auth.installHint': '请从 https://antigravity.google/download 安装，运行 agy --version 自检后刷新。',
+  'auth.unauthenticatedHint': '尚未登录。请点“登录 Antigravity CLI”完成授权。',
+  'auth.terminalHint': '登录后这里仍可能显示未知。请点登录按钮在终端授权，完成后刷新。',
+  'auth.privacy': '本面板不读取、上传或保存凭据，也不发送模型请求。登录由官方 CLI 在终端完成。',
+  'auth.installHint': '尚未安装 CLI。请从 https://antigravity.google/download 安装后刷新。',
+  'auth.notesSummary': '说明',
   'cli.title': 'Antigravity CLI 状态',
   'cli.availability': 'CLI 可用性',
   'cli.available': '可用',
@@ -99,28 +100,29 @@ const zh = {
   'cli.dataDirMissing': '未配置',
   'cli.writable': '可写',
   'cli.notWritable': '不可写',
-  'cli.dataDirError': '数据目录不可写：{detail}',
+  'cli.dataDirError': '数据目录不可写（{detail}），请检查权限。',
   'cli.loginState': '登录状态',
-  'cli.statusUnknown': '未知',
+  'cli.statusUnknown': '未知（查不到）',
   'cli.statusLoggedin': '已登录',
   'cli.statusUnauthenticated': '未登录',
-  'cli.unknownReason': '原因：authMethods={methods}，session/new={session}',
-  'cli.unknownReasonProtocol': '协议无法区分已登录/未登录：authMethods 在两种状态下相同、session/new 均成功、agy models / agy agents 均非 0 退出；本面板不会据此断言已登录。',
+  'cli.unknownReason': '这里查不到登录状态，请在终端确认。',
+  'cli.unknownReasonProtocol': '这里看不出你有没有登录，得在终端确认。',
   'cli.refresh': '刷新状态',
   'cli.openLogin': '打开登录终端',
-  'cli.probeFailed': '状态探测失败：{detail}',
-  'cli.remoteUnavailable': 'Host 通道不可用，无法探测 CLI 状态。',
+  'cli.probeFailed': '暂时无法检测 CLI 状态，请稍后点刷新重试。',
+  'cli.remoteUnavailable': '无法连接本地服务，暂不能检测 CLI 状态。请稍后重试。',
   'cli.unknownValue': '未知',
   'cli.notProbed': '尚未探测',
-  'cli.reasonMissing': '本机没有可用的 agy CLI（未安装或无法执行）。',
-  'cli.reasonDataDir': 'CLI 数据目录未配置或不可写，无法确认登录态。',
-  'cli.reasonProbeFailed': '状态探针执行失败，无法判定登录态。',
-  'cli.reasonBridgeClosed': '桥已关闭，无法探测 CLI 状态。',
+  'cli.reasonMissing': '本机没有可用的 agy CLI。请先安装后再刷新。',
+  'cli.reasonDataDir': '数据目录未配置或不可写，查不到登录状态。请检查目录权限。',
+  'cli.reasonProbeFailed': '状态检测失败，查不到登录状态。请点刷新重试。',
+  'cli.reasonBridgeClosed': '连接已关闭，暂不能检测 CLI 状态。请刷新页面或重启服务。',
   'cli.unknownReasonCode': '原因代码：{code}',
-  'cli.flowTerminal': '已打开可见终端运行 agy acp --login，完成后点“刷新状态”。',
-  'cli.flowAlreadyLoggedIn': 'CLI 报告已登录，无需再次授权。',
-  'cli.flowNone': '当前无法启动登录流程，请先安装 CLI 或配置数据目录。',
-  'cli.bridgeMessage': 'CLI 返回：{detail}',
+  'cli.flowTerminal': '已在终端打开官方登录。完成授权后请点“刷新状态”。',
+  'cli.flowAlreadyLoggedIn': '当前已登录，无需重新授权。',
+  'cli.flowNone': '当前无法启动登录。请先安装 CLI 并配置可写的数据目录。',
+  'cli.bridgeMessage': 'CLI 还返回了：{detail}',
+  'cli.detailsSummary': '说明',
   'activity.title': 'Antigravity 活动流',
   'activity.readonly': '来自 Antigravity 的只读活动',
   'activity.empty': '本轮没有工具活动',
@@ -171,23 +173,23 @@ const en = {
   'state.idle': 'Idle',
   'state.pending': 'Dispatching',
   'state.accepted': 'Accepted',
-  'state.acceptanceUnknown': 'Delivery unconfirmed (status only, never resent)',
+  'state.acceptanceUnknown': 'Delivery unconfirmed; won\'t resend automatically. Check status before retrying.',
   'state.busy': 'Running',
   'state.replied': 'Final reply available',
   'state.failed': 'Failed',
   'state.cancelled': 'Cancelled',
   'state.notSent': 'Not sent',
   'state.unknown': 'Unknown state',
-  'banner.noSession': 'The current session identity is unavailable; the panel is disabled',
-  'banner.noRemote': 'Host channel unavailable: explanatory only, nothing is dispatched',
-  'banner.capabilitiesFailed': 'Could not read backend capabilities',
-  'banner.crossSession': 'This job belongs to another session; read and write are refused',
+  'banner.noSession': 'Current session couldn\'t be identified; panel disabled. Reload or reopen the session.',
+  'banner.noRemote': 'Local service disconnected. Read-only view; tasks can\'t be sent.',
+  'banner.capabilitiesFailed': 'Couldn\'t load backend status; features are temporarily unavailable. Refresh to retry.',
+  'banner.crossSession': 'This task belongs to another session and is locked here. Switch to that session to view it.',
   'reply.label': 'Final reply',
   'reply.empty': 'No final reply yet',
   'reply.truncated': 'The reply is long and is collapsed in the panel',
   'permission.title': 'Antigravity is waiting for your permission',
   'permission.hint': 'Resolve it in the Antigravity window; this panel never auto-approves permissions.',
-  'error.label': 'Error',
+  'error.label': 'Something went wrong. Please retry, or check the logs if the issue persists.',
   'limits.message': 'The task must stay under {limit} characters',
   'limits.paths': 'At most {limit} host path attachments',
   'auth.label': 'Antigravity CLI sign-in',
@@ -198,10 +200,11 @@ const en = {
   'auth.statusUnauthenticated': 'Not signed in',
   'auth.statusUnknown': 'Status unknown',
   'auth.statusChecking': 'Checking…',
-  'auth.unauthenticatedHint': 'Complete official Antigravity CLI authorization.',
-  'auth.terminalHint': 'Click Sign in to open the terminal, complete official authorization, then Refresh sign-in status. Silent checks in CLI 1.5.x may still report unknown.',
-  'auth.privacy': 'Checks CLI execution and protocol status only. Never reads, uploads or stores credentials. Official CLI handles sign-in in the terminal. Silent checks send no model requests.',
-  'auth.installHint': 'Install from https://antigravity.google/download, run agy --version, then refresh.',
+  'auth.unauthenticatedHint': 'Not signed in. Click "Sign in to Antigravity CLI" to authorize.',
+  'auth.terminalHint': 'Status may still show unknown after sign-in. Click Sign in to authorize in the terminal, then refresh.',
+  'auth.privacy': 'This panel never reads, uploads, or stores credentials, and sends no model requests. Sign-in is handled by the official CLI in your terminal.',
+  'auth.installHint': 'CLI not installed. Download it from https://antigravity.google/download, then refresh.',
+  'auth.notesSummary': 'Notes',
   'cli.title': 'Antigravity CLI status',
   'cli.availability': 'CLI availability',
   'cli.available': 'Available',
@@ -213,28 +216,29 @@ const en = {
   'cli.dataDirMissing': 'Not configured',
   'cli.writable': 'Writable',
   'cli.notWritable': 'Not writable',
-  'cli.dataDirError': 'Data directory is not writable: {detail}',
+  'cli.dataDirError': 'Data directory is not writable ({detail}). Check path permissions.',
   'cli.loginState': 'Sign-in state',
-  'cli.statusUnknown': 'Unknown',
+  'cli.statusUnknown': 'Unknown (unavailable)',
   'cli.statusLoggedin': 'Signed in',
   'cli.statusUnauthenticated': 'Not signed in',
-  'cli.unknownReason': 'Reason: authMethods={methods}, session/new={session}',
-  'cli.unknownReasonProtocol': 'The protocol cannot distinguish signed-in from signed-out: authMethods is identical in both states, session/new succeeds in both, and agy models / agy agents exit non-zero; this panel will never assert signed-in.',
+  'cli.unknownReason': 'Sign-in status can\'t be checked here. Please verify it in your terminal.',
+  'cli.unknownReasonProtocol': 'Can\'t tell whether you\'re signed in from here. Check it in the terminal.',
   'cli.refresh': 'Refresh status',
   'cli.openLogin': 'Open login terminal',
-  'cli.probeFailed': 'Status probe failed: {detail}',
-  'cli.remoteUnavailable': 'Host channel unavailable; cannot probe CLI status.',
+  'cli.probeFailed': 'Couldn\'t check CLI status. Click Refresh to try again.',
+  'cli.remoteUnavailable': 'Local service unavailable; CLI status can\'t be checked right now. Please try again later.',
   'cli.unknownValue': 'unknown',
   'cli.notProbed': 'Not probed',
-  'cli.reasonMissing': 'No usable agy CLI on this machine (missing or not executable).',
-  'cli.reasonDataDir': 'CLI data directory is not configured or not writable; sign-in state cannot be confirmed.',
-  'cli.reasonProbeFailed': 'The status probe failed; sign-in state cannot be determined.',
-  'cli.reasonBridgeClosed': 'The bridge is closed; CLI status cannot be probed.',
+  'cli.reasonMissing': 'No usable Antigravity CLI found. Install it first, then refresh.',
+  'cli.reasonDataDir': 'Data directory is missing or not writable, so sign-in status can\'t be checked. Check its path and permissions.',
+  'cli.reasonProbeFailed': 'Status check failed, so sign-in status is unavailable. Click Refresh to retry.',
+  'cli.reasonBridgeClosed': 'Connection is closed; CLI status can\'t be checked. Reload the page or restart the service.',
   'cli.unknownReasonCode': 'Reason code: {code}',
-  'cli.flowTerminal': 'A visible terminal is running agy acp --login; click "Refresh status" when it finishes.',
-  'cli.flowAlreadyLoggedIn': 'The CLI reports an existing sign-in; no new authorization needed.',
-  'cli.flowNone': 'The login flow cannot start; install the CLI or configure the data directory first.',
-  'cli.bridgeMessage': 'CLI message: {detail}',
+  'cli.flowTerminal': 'Official sign-in opened in your terminal. Click "Refresh status" once done.',
+  'cli.flowAlreadyLoggedIn': 'Already signed in; no need to authorize again.',
+  'cli.flowNone': 'Can\'t start sign-in yet. Install the CLI and set a writable data directory first.',
+  'cli.bridgeMessage': 'The CLI also returned: {detail}',
+  'cli.detailsSummary': 'Notes',
   'activity.title': 'Antigravity activity',
   'activity.readonly': 'Read-only activity reported by Antigravity',
   'activity.empty': 'No tool activity in this turn',
@@ -1490,47 +1494,98 @@ function authText(t, key) {
  * never imports a second copy of React.
  */
 const PANEL_STYLES = `
-.antigravity-bridge { --ag-space: var(--dsw-alias-spacing-md, 12px); box-sizing: border-box; display: grid; gap: var(--dsw-alias-spacing-md, 12px); width: 100%; max-width: 760px; padding: var(--dsw-alias-spacing-lg, 20px); color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-lg, 12px); box-shadow: var(--dsw-alias-shadow-surface, 0 4px 16px rgb(0 0 0 / 12%)); }
+.antigravity-bridge { --ag-space: var(--dsw-alias-spacing-md, 12px); box-sizing: border-box; display: grid; gap: var(--ag-space); width: 100%; max-width: 760px; padding: var(--dsw-alias-spacing-lg, 16px); color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-lg, 12px); box-shadow: var(--dsw-alias-shadow-surface, 0 4px 16px rgb(0 0 0 / 12%)); }
 .antigravity-bridge, .antigravity-bridge * { box-sizing: border-box; }
 .antigravity-bridge__header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); }
 .antigravity-bridge__toggle { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; }
-.antigravity-bridge__title { font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; }
-.antigravity-bridge__phase, .antigravity-bridge__transport-badge { padding: 3px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: 999px; font-size: .75rem; white-space: nowrap; }
+.antigravity-bridge__title { font-size: 14px; font-weight: 600; letter-spacing: .01em; }
+.antigravity-bridge__phase, .antigravity-bridge__transport-badge { padding: 3px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: 999px; font-size: 12px; white-space: nowrap; }
 .antigravity-bridge__body { display: grid; gap: var(--ag-space); }
-.antigravity-bridge__field { display: grid; gap: 6px; min-width: 0; color: var(--dsw-alias-label-secondary); font-size: .82rem; font-weight: 600; }
-.antigravity-bridge__field input, .antigravity-bridge__field select, .antigravity-bridge__field textarea { width: 100%; min-height: 36px; padding: 8px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font: inherit; font-weight: 400; resize: vertical; }
-.antigravity-bridge__field textarea { min-height: 104px; line-height: 1.45; }
+.antigravity-bridge__field { display: grid; gap: 6px; min-width: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; }
+.antigravity-bridge__field input, .antigravity-bridge__field select, .antigravity-bridge__field textarea { width: 100%; height: 32px; min-height: 32px; padding: 4px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font: inherit; font-size: 13px; font-weight: 400; resize: vertical; }
+.antigravity-bridge__field textarea { height: auto; min-height: 96px; padding: 8px 10px; line-height: 1.45; }
 .antigravity-bridge__field input:focus-visible, .antigravity-bridge__field select:focus-visible, .antigravity-bridge__field textarea:focus-visible, .antigravity-bridge button:focus-visible { outline: 2px solid var(--dsw-alias-focus-ring, var(--dsw-alias-brand-primary)); outline-offset: 2px; }
 .antigravity-bridge__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ag-space); }
 .antigravity-bridge__pathrow, .antigravity-bridge__files { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .antigravity-bridge__file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .antigravity-bridge__pathrow input { flex: 1 1 220px; }
-.antigravity-bridge button { min-height: 34px; padding: 7px 11px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; }
+.antigravity-bridge button { height: 32px; min-height: 32px; padding: 0 12px; color: var(--dsw-alias-label-primary); background: transparent; border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
 .antigravity-bridge button:hover:not(:disabled) { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
 .antigravity-bridge button:disabled { cursor: not-allowed; opacity: .55; }
-.antigravity-bridge__primary { color: var(--dsw-alias-label-primary-foreground, #ffffff) !important; background: var(--dsw-alias-brand-primary) !important; border-color: var(--dsw-alias-brand-primary) !important; font-weight: 700; }
+.antigravity-bridge__primary { color: var(--dsw-alias-label-primary-foreground, #ffffff) !important; background: var(--dsw-alias-brand-primary) !important; border-color: var(--dsw-alias-brand-primary) !important; font-weight: 600; }
 .antigravity-bridge__actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 .antigravity-bridge__auth { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
-.antigravity-bridge__auth-info { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__auth-info { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .antigravity-bridge__auth-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.antigravity-bridge__banner, .antigravity-bridge__permission, .antigravity-bridge__notice, .antigravity-bridge__error { margin: 0; padding: 9px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
+.antigravity-status-pill--success { color: var(--dsw-alias-state-success-primary, #15803d); }
+.antigravity-status-pill--error { color: var(--dsw-alias-state-error-primary, #b42318); }
+.antigravity-status-pill--warn { color: var(--dsw-alias-state-warn-primary, #b45309); }
+.antigravity-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+.antigravity-status-word { font-weight: 700; }
+.antigravity-bridge__details { margin: 0; padding: 6px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-bridge__summary { cursor: pointer; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-secondary); font-weight: 500; list-style-position: inside; }
+.antigravity-bridge__details-body { display: grid; gap: 6px; margin-top: 6px; }
+.antigravity-bridge__banner, .antigravity-bridge__permission, .antigravity-bridge__notice, .antigravity-bridge__error { margin: 0; padding: 9px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: 12px; line-height: 1.45; }
 .antigravity-bridge__error { color: var(--dsw-alias-state-error-primary, #b42318); border-left-color: var(--dsw-alias-state-error-primary, #b42318); }
 .antigravity-bridge__paths { display: grid; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
 .antigravity-bridge__paths li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .78rem; }
 .antigravity-bridge__paths code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.antigravity-bridge__hint { color: var(--dsw-alias-label-secondary); font-size: .78rem; font-weight: 400; }
+.antigravity-bridge__hint { color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 400; }
 .antigravity-bridge__status { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; padding: 12px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
-.antigravity-bridge__status dt { color: var(--dsw-alias-label-secondary); font-weight: 600; }
+.antigravity-bridge__status dt { color: var(--dsw-alias-label-secondary); font-weight: 600; font-size: 12px; }
 .antigravity-bridge__status dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .antigravity-bridge__reply { max-height: 260px; overflow: auto; white-space: pre-wrap; line-height: 1.5; }
 .antigravity-bridge__activity { display: grid; gap: 6px; padding: 10px 12px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
-.antigravity-bridge__activity-title { margin: 0; font-size: .86rem; font-weight: 700; color: var(--dsw-alias-label-primary); }
-.antigravity-bridge__activity-list { display: grid; gap: 4px; margin: 0; padding-left: 18px; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__activity-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.antigravity-bridge__activity-list { display: grid; gap: 6px; margin: 0; padding-left: 18px; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__activity-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.antigravity-chip { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5; border: 1px solid transparent; }
+.antigravity-chip--warn { color: var(--dsw-alias-state-warn-primary, #b45309); background: var(--dsw-alias-state-warn-bg, rgba(180, 83, 9, 0.12)); border-color: var(--dsw-alias-state-warn-border, rgba(180, 83, 9, 0.28)); }
+.antigravity-chip--business { color: var(--dsw-alias-brand-primary, #1d4ed8); background: var(--dsw-alias-brand-bg, rgba(29, 78, 216, 0.12)); border-color: var(--dsw-alias-brand-border, rgba(29, 78, 216, 0.28)); }
+.antigravity-chip--success { color: var(--dsw-alias-state-success-primary, #15803d); background: var(--dsw-alias-state-success-bg, rgba(21, 128, 61, 0.12)); border-color: var(--dsw-alias-state-success-border, rgba(21, 128, 61, 0.28)); }
+.antigravity-chip--error { color: var(--dsw-alias-state-error-primary, #b42318); background: var(--dsw-alias-state-error-bg, rgba(180, 35, 24, 0.12)); border-color: var(--dsw-alias-state-error-border, rgba(180, 35, 24, 0.28)); }
+.antigravity-chip--neutral { color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-1); border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); }
 .antigravity-bridge__thought { margin: 0; padding: 8px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; line-height: 1.4; }
 .antigravity-bridge__thought-label { font-weight: 600; }
 .antigravity-bridge--collapsed { padding: 12px 16px; }
 @media (max-width: 640px) { .antigravity-bridge { padding: 14px; } .antigravity-bridge__row { grid-template-columns: 1fr; } .antigravity-bridge__header { align-items: flex-start; flex-direction: column; } .antigravity-bridge__actions button { flex: 1 1 auto; } }
 `;
+
+function statusToneFromLogin(status) {
+  if (status === 'loggedin') return 'success';
+  if (status === 'unauthenticated') return 'error';
+  return 'warn';
+}
+
+function statusToneFromInstall(installation) {
+  if (installation === 'available') return 'success';
+  if (installation === 'missing' || installation === 'unusable') return 'error';
+  return 'warn';
+}
+
+function statusToneFromWritable(writable) {
+  if (writable === true) return 'success';
+  if (writable === false) return 'error';
+  return 'warn';
+}
+
+function activityChipClass(status) {
+  if (status === 'pending') return 'antigravity-chip antigravity-chip--warn';
+  if (status === 'in_progress') return 'antigravity-chip antigravity-chip--business';
+  if (status === 'completed') return 'antigravity-chip antigravity-chip--success';
+  if (status === 'failed') return 'antigravity-chip antigravity-chip--error';
+  return 'antigravity-chip antigravity-chip--neutral';
+}
+
+function renderStatusPill(h, tone, label, extraProps = {}) {
+  return h(
+    'span',
+    { ...extraProps, className: `antigravity-status-pill antigravity-status-pill--${tone}` },
+    h('span', { className: 'antigravity-status-dot', 'aria-hidden': 'true' }),
+    h('span', { className: 'antigravity-status-word' }, label),
+  );
+}
 
 function createPanelComponent({ React, translate = createTranslator(), bridge, uploader = null, getUploader = null }) {
   if (!React || typeof React.createElement !== 'function') {
@@ -1787,10 +1842,11 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
         'div',
         { className: 'antigravity-bridge__auth-info' },
         h('span', null, authText(t, 'auth.label')),
-        h(
-          'span',
-          { className: 'antigravity-bridge__phase', 'data-auth-badge': state.cliAuthStatus },
+        renderStatusPill(
+          h,
+          statusToneFromLogin(state.cliAuthStatus),
           authText(t, authStatusTextKey(state.cliAuthStatus)),
+          { 'data-auth-badge': state.cliAuthStatus },
         ),
       ),
       h(
@@ -1819,8 +1875,17 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
       ),
     );
 
-    if (state.cliAuthStatus === 'unknown') banners.push(h('p', { key: 'auth-unknown', className: 'antigravity-bridge__notice' }, authText(t, 'auth.terminalHint')));
-    banners.push(h('p', { key: 'auth-privacy', className: 'antigravity-bridge__notice', 'data-auth-privacy': '' }, authText(t, 'auth.privacy')));
+    const authNotes = [];
+    if (state.cliAuthStatus === 'unknown') authNotes.push(h('p', { key: 'auth-unknown', className: 'antigravity-bridge__notice' }, authText(t, 'auth.terminalHint')));
+    authNotes.push(h('p', { key: 'auth-privacy', className: 'antigravity-bridge__notice', 'data-auth-privacy': '' }, authText(t, 'auth.privacy')));
+    banners.push(
+      h(
+        'details',
+        { key: 'auth-notes', className: 'antigravity-bridge__details' },
+        h('summary', { className: 'antigravity-bridge__summary' }, authText(t, 'auth.notesSummary')),
+        h('div', { className: 'antigravity-bridge__details-body' }, authNotes),
+      ),
+    );
     if (state.cliExecutable) banners.push(h('p', { key: 'cli-path', className: 'antigravity-bridge__notice', 'data-cli-installation': state.cliInstallation }, `${state.cliExecutable} ${state.cliVersion}`));
     if (state.cliInstallation === 'missing') banners.push(h('p', { key: 'cli-install', className: 'antigravity-bridge__notice' }, authText(t, 'auth.installHint')));
     if (state.cliAuthStatus === 'unauthenticated') {
@@ -1939,7 +2004,12 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
                             'data-activity-kind': ev.kind,
                             'data-activity-status': ev.status,
                           },
-                          `${t(`activity.kind.${['execute', 'edit', 'read', 'other'].includes(ev.kind) ? ev.kind : 'unknown'}`)} · ${ev.title || '\u2014'} · ${ev.status || '\u2014'}`,
+                          h(
+                            'span',
+                            { className: 'antigravity-bridge__activity-row' },
+                            h('span', null, `${t(`activity.kind.${['execute', 'edit', 'read', 'other'].includes(ev.kind) ? ev.kind : 'unknown'}`)} · ${ev.title || '\u2014'}`),
+                            h('span', { className: activityChipClass(ev.status) }, ev.status || '\u2014'),
+                          ),
                         ),
                       ),
                     )
@@ -1955,7 +2025,7 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
           )
         : null,
       state.notice ? h('p', { className: 'antigravity-bridge__notice', role: 'status' }, state.notice) : null,
-      state.error ? h('p', { className: 'antigravity-bridge__error', role: 'alert' }, `${t('error.label')}: ${state.error}`) : null,
+      state.error ? h('p', { className: 'antigravity-bridge__error', role: 'alert', 'data-error-code': state.error }, t('error.label')) : null,
     );
 
     return h('section', { className: 'antigravity-bridge', 'aria-label': t('title'), 'data-phase': state.phase }, styleTag, header, body);
@@ -1971,7 +2041,7 @@ const SIDEBAR_COPY = {
     'nativeActivity.readonly': '来自原生 ACP 会话的只读活动',
     'nativeActivity.empty': '本会话暂无原生工具活动',
     'nativeActivity.truncated': '仅保留最近部分活动记录',
-    'nativeActivity.localDerivedNote': '说明：updatedAt、source、truncated 为插件本地派生字段，非 ACP 原生字段。',
+    'nativeActivity.localDerivedNote': '更新时间、来源与截断标记由插件本地补充，非底层原始字段。',
   },
   en: {
     'sidebar.chooseSession': 'Select a DSH session',
@@ -1981,7 +2051,7 @@ const SIDEBAR_COPY = {
     'nativeActivity.readonly': 'Read-only activity from native ACP session',
     'nativeActivity.empty': 'No native tool activity in this session',
     'nativeActivity.truncated': 'Showing most recent activity entries',
-    'nativeActivity.localDerivedNote': 'Note: updatedAt, source, and truncated are locally derived by the plugin, not ACP native fields.',
+    'nativeActivity.localDerivedNote': 'Timestamps, sources, and truncation flags are added locally by this plugin rather than reported directly.',
   },
 };
 
@@ -1989,16 +2059,25 @@ const SIDEBAR_STYLES = `
 .antigravity-sidebar-page { min-height: 100%; }
 .antigravity-sidebar-page__content { display: grid; gap: var(--dsw-alias-spacing-md, 12px); width: min(100%, 920px); margin-inline: auto; }
 .antigravity-sidebar-page__title { margin: 0; color: var(--dsw-alias-label-primary); font-size: 1.35rem; line-height: 1.2; }
-.antigravity-sidebar-page__session { display: grid; gap: 6px; color: var(--dsw-alias-label-secondary); font-size: .82rem; font-weight: 600; }
-.antigravity-sidebar-page__session select { width: 100%; min-height: 40px; }
+.antigravity-sidebar-page__session { display: grid; gap: 6px; color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; }
+.antigravity-sidebar-page__session select { width: 100%; height: 32px; min-height: 32px; padding: 4px 10px; }
 .antigravity-sidebar-page__empty { margin: 0; padding: 16px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-1); border: 1px dashed var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); line-height: 1.5; }
-.antigravity-cli-status { display: grid; gap: 8px; padding: 14px 16px; background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); font-size: .84rem; }
-.antigravity-cli-status__title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--dsw-alias-label-primary); }
+.antigravity-cli-status { display: grid; gap: var(--dsw-alias-spacing-md, 12px); padding: var(--dsw-alias-spacing-lg, 16px); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); font-size: .84rem; }
+.antigravity-cli-status__title { margin: 0; font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
 .antigravity-cli-status__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--dsw-alias-label-secondary); }
-.antigravity-cli-status__badge { padding: 2px 8px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); font-size: .78rem; }
-.antigravity-cli-status__reason { margin: 0; color: var(--dsw-alias-label-secondary); font-size: .78rem; line-height: 1.4; }
+.antigravity-cli-status__label { font-size: 12px; color: var(--dsw-alias-label-secondary); font-weight: 500; }
+.antigravity-cli-status__badge { padding: 2px 8px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); font-size: 12px; }
+.antigravity-status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
+.antigravity-status-pill--success { color: var(--dsw-alias-state-success-primary, #15803d); }
+.antigravity-status-pill--error { color: var(--dsw-alias-state-error-primary, #b42318); }
+.antigravity-status-pill--warn { color: var(--dsw-alias-state-warn-primary, #b45309); }
+.antigravity-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+.antigravity-status-word { font-weight: 700; }
+.antigravity-cli-status__details { margin: 0; padding: 6px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-cli-status__summary { cursor: pointer; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-secondary); font-weight: 500; list-style-position: inside; }
+.antigravity-cli-status__reason { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.45; }
 .antigravity-cli-status__actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.antigravity-cli-status__actions button { min-height: 32px; padding: 6px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; }
+.antigravity-cli-status__actions button { height: 32px; min-height: 32px; padding: 0 12px; color: var(--dsw-alias-label-primary); background: transparent; border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; }
 .antigravity-cli-status__error { margin: 0; padding: 8px 10px; color: var(--dsw-alias-state-error-primary, #b42318); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-state-error-primary, #b42318); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
 .antigravity-cli-status__notice { margin: 0; color: var(--dsw-alias-label-secondary); font-size: .8rem; }
 `;
@@ -2187,16 +2266,17 @@ function createCliSectionComponent({ React, translate: t = createTranslator(), c
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'installation' },
-        h('span', null, `${t('cli.availability')}: ${installText}`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.availability')}:`),
+        renderStatusPill(h, statusToneFromInstall(state.installation), installText),
         h('span', { className: 'antigravity-cli-status__badge', 'data-cli-field': 'version' }, state.version || t('cli.unknownValue')),
         state.executable ? h('code', { 'data-cli-field': 'executable' }, state.executable) : null,
       ),
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'data-dir' },
-        h('span', null, `${t('cli.dataDir')}:`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.dataDir')}:`),
         h('code', null, state.dataDir || t('cli.dataDirMissing')),
-        h('span', { className: 'antigravity-cli-status__badge' }, writableText),
+        renderStatusPill(h, statusToneFromWritable(state.dataDirWritable), writableText),
       ),
       state.dataDirError
         ? h('p', { className: 'antigravity-cli-status__error', role: 'alert', 'data-cli-error': '' }, t('cli.dataDirError', { detail: state.dataDirError }))
@@ -2204,17 +2284,17 @@ function createCliSectionComponent({ React, translate: t = createTranslator(), c
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'login-state' },
-        h('span', null, `${t('cli.loginState')}: ${loginText}`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.loginState')}:`),
+        renderStatusPill(h, statusToneFromLogin(state.status), loginText),
       ),
-      state.status === 'unknown'
-        ? h(
-            'p',
-            { className: 'antigravity-cli-status__reason', 'data-cli-reason': '' },
-            t('cli.unknownReason', { methods: probe.authMethodCount ?? 0, session: probe.sessionProbe ?? 'skipped' }),
-          )
-        : null,
+      
       isProtocolAmbiguous
-        ? h('p', { className: 'antigravity-cli-status__reason', 'data-cli-reason': 'protocol_ambiguous' }, t('cli.unknownReasonProtocol'))
+        ? h(
+            'details',
+            { className: 'antigravity-cli-status__details' },
+            h('summary', { className: 'antigravity-cli-status__summary' }, t('cli.detailsSummary')),
+            h('p', { className: 'antigravity-cli-status__reason', 'data-cli-reason': 'protocol_ambiguous' }, t('cli.unknownReasonProtocol')),
+          )
         : null,
       state.status === 'unknown' && state.reasonCode && !isProtocolAmbiguous
         ? h(

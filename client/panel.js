@@ -1203,47 +1203,98 @@ function authText(t, key) {
  * never imports a second copy of React.
  */
 const PANEL_STYLES = `
-.antigravity-bridge { --ag-space: var(--dsw-alias-spacing-md, 12px); box-sizing: border-box; display: grid; gap: var(--dsw-alias-spacing-md, 12px); width: 100%; max-width: 760px; padding: var(--dsw-alias-spacing-lg, 20px); color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-lg, 12px); box-shadow: var(--dsw-alias-shadow-surface, 0 4px 16px rgb(0 0 0 / 12%)); }
+.antigravity-bridge { --ag-space: var(--dsw-alias-spacing-md, 12px); box-sizing: border-box; display: grid; gap: var(--ag-space); width: 100%; max-width: 760px; padding: var(--dsw-alias-spacing-lg, 16px); color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-lg, 12px); box-shadow: var(--dsw-alias-shadow-surface, 0 4px 16px rgb(0 0 0 / 12%)); }
 .antigravity-bridge, .antigravity-bridge * { box-sizing: border-box; }
 .antigravity-bridge__header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); }
 .antigravity-bridge__toggle { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; }
-.antigravity-bridge__title { font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; }
-.antigravity-bridge__phase, .antigravity-bridge__transport-badge { padding: 3px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: 999px; font-size: .75rem; white-space: nowrap; }
+.antigravity-bridge__title { font-size: 14px; font-weight: 600; letter-spacing: .01em; }
+.antigravity-bridge__phase, .antigravity-bridge__transport-badge { padding: 3px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: 999px; font-size: 12px; white-space: nowrap; }
 .antigravity-bridge__body { display: grid; gap: var(--ag-space); }
-.antigravity-bridge__field { display: grid; gap: 6px; min-width: 0; color: var(--dsw-alias-label-secondary); font-size: .82rem; font-weight: 600; }
-.antigravity-bridge__field input, .antigravity-bridge__field select, .antigravity-bridge__field textarea { width: 100%; min-height: 36px; padding: 8px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font: inherit; font-weight: 400; resize: vertical; }
-.antigravity-bridge__field textarea { min-height: 104px; line-height: 1.45; }
+.antigravity-bridge__field { display: grid; gap: 6px; min-width: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; }
+.antigravity-bridge__field input, .antigravity-bridge__field select, .antigravity-bridge__field textarea { width: 100%; height: 32px; min-height: 32px; padding: 4px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-base); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font: inherit; font-size: 13px; font-weight: 400; resize: vertical; }
+.antigravity-bridge__field textarea { height: auto; min-height: 96px; padding: 8px 10px; line-height: 1.45; }
 .antigravity-bridge__field input:focus-visible, .antigravity-bridge__field select:focus-visible, .antigravity-bridge__field textarea:focus-visible, .antigravity-bridge button:focus-visible { outline: 2px solid var(--dsw-alias-focus-ring, var(--dsw-alias-brand-primary)); outline-offset: 2px; }
 .antigravity-bridge__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ag-space); }
 .antigravity-bridge__pathrow, .antigravity-bridge__files { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .antigravity-bridge__file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .antigravity-bridge__pathrow input { flex: 1 1 220px; }
-.antigravity-bridge button { min-height: 34px; padding: 7px 11px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; }
+.antigravity-bridge button { height: 32px; min-height: 32px; padding: 0 12px; color: var(--dsw-alias-label-primary); background: transparent; border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
 .antigravity-bridge button:hover:not(:disabled) { background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, 0.12)); }
 .antigravity-bridge button:disabled { cursor: not-allowed; opacity: .55; }
-.antigravity-bridge__primary { color: var(--dsw-alias-label-primary-foreground, #ffffff) !important; background: var(--dsw-alias-brand-primary) !important; border-color: var(--dsw-alias-brand-primary) !important; font-weight: 700; }
+.antigravity-bridge__primary { color: var(--dsw-alias-label-primary-foreground, #ffffff) !important; background: var(--dsw-alias-brand-primary) !important; border-color: var(--dsw-alias-brand-primary) !important; font-weight: 600; }
 .antigravity-bridge__actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 .antigravity-bridge__auth { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 8px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
-.antigravity-bridge__auth-info { display: flex; align-items: center; gap: 8px; font-size: .82rem; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__auth-info { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .antigravity-bridge__auth-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.antigravity-bridge__banner, .antigravity-bridge__permission, .antigravity-bridge__notice, .antigravity-bridge__error { margin: 0; padding: 9px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
+.antigravity-status-pill--success { color: var(--dsw-alias-state-success-primary, #15803d); }
+.antigravity-status-pill--error { color: var(--dsw-alias-state-error-primary, #b42318); }
+.antigravity-status-pill--warn { color: var(--dsw-alias-state-warn-primary, #b45309); }
+.antigravity-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+.antigravity-status-word { font-weight: 700; }
+.antigravity-bridge__details { margin: 0; padding: 6px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-bridge__summary { cursor: pointer; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-secondary); font-weight: 500; list-style-position: inside; }
+.antigravity-bridge__details-body { display: grid; gap: 6px; margin-top: 6px; }
+.antigravity-bridge__banner, .antigravity-bridge__permission, .antigravity-bridge__notice, .antigravity-bridge__error { margin: 0; padding: 9px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: 12px; line-height: 1.45; }
 .antigravity-bridge__error { color: var(--dsw-alias-state-error-primary, #b42318); border-left-color: var(--dsw-alias-state-error-primary, #b42318); }
 .antigravity-bridge__paths { display: grid; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
 .antigravity-bridge__paths li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .78rem; }
 .antigravity-bridge__paths code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.antigravity-bridge__hint { color: var(--dsw-alias-label-secondary); font-size: .78rem; font-weight: 400; }
+.antigravity-bridge__hint { color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 400; }
 .antigravity-bridge__status { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0; padding: 12px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
-.antigravity-bridge__status dt { color: var(--dsw-alias-label-secondary); font-weight: 600; }
+.antigravity-bridge__status dt { color: var(--dsw-alias-label-secondary); font-weight: 600; font-size: 12px; }
 .antigravity-bridge__status dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .antigravity-bridge__reply { max-height: 260px; overflow: auto; white-space: pre-wrap; line-height: 1.5; }
 .antigravity-bridge__activity { display: grid; gap: 6px; padding: 10px 12px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
-.antigravity-bridge__activity-title { margin: 0; font-size: .86rem; font-weight: 700; color: var(--dsw-alias-label-primary); }
-.antigravity-bridge__activity-list { display: grid; gap: 4px; margin: 0; padding-left: 18px; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__activity-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
+.antigravity-bridge__activity-list { display: grid; gap: 6px; margin: 0; padding-left: 18px; color: var(--dsw-alias-label-secondary); }
+.antigravity-bridge__activity-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.antigravity-chip { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 1.5; border: 1px solid transparent; }
+.antigravity-chip--warn { color: var(--dsw-alias-state-warn-primary, #b45309); background: var(--dsw-alias-state-warn-bg, rgba(180, 83, 9, 0.12)); border-color: var(--dsw-alias-state-warn-border, rgba(180, 83, 9, 0.28)); }
+.antigravity-chip--business { color: var(--dsw-alias-brand-primary, #1d4ed8); background: var(--dsw-alias-brand-bg, rgba(29, 78, 216, 0.12)); border-color: var(--dsw-alias-brand-border, rgba(29, 78, 216, 0.28)); }
+.antigravity-chip--success { color: var(--dsw-alias-state-success-primary, #15803d); background: var(--dsw-alias-state-success-bg, rgba(21, 128, 61, 0.12)); border-color: var(--dsw-alias-state-success-border, rgba(21, 128, 61, 0.28)); }
+.antigravity-chip--error { color: var(--dsw-alias-state-error-primary, #b42318); background: var(--dsw-alias-state-error-bg, rgba(180, 35, 24, 0.12)); border-color: var(--dsw-alias-state-error-border, rgba(180, 35, 24, 0.28)); }
+.antigravity-chip--neutral { color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-1); border-color: var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); }
 .antigravity-bridge__thought { margin: 0; padding: 8px 11px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; line-height: 1.4; }
 .antigravity-bridge__thought-label { font-weight: 600; }
 .antigravity-bridge--collapsed { padding: 12px 16px; }
 @media (max-width: 640px) { .antigravity-bridge { padding: 14px; } .antigravity-bridge__row { grid-template-columns: 1fr; } .antigravity-bridge__header { align-items: flex-start; flex-direction: column; } .antigravity-bridge__actions button { flex: 1 1 auto; } }
 `;
+
+function statusToneFromLogin(status) {
+  if (status === 'loggedin') return 'success';
+  if (status === 'unauthenticated') return 'error';
+  return 'warn';
+}
+
+function statusToneFromInstall(installation) {
+  if (installation === 'available') return 'success';
+  if (installation === 'missing' || installation === 'unusable') return 'error';
+  return 'warn';
+}
+
+function statusToneFromWritable(writable) {
+  if (writable === true) return 'success';
+  if (writable === false) return 'error';
+  return 'warn';
+}
+
+function activityChipClass(status) {
+  if (status === 'pending') return 'antigravity-chip antigravity-chip--warn';
+  if (status === 'in_progress') return 'antigravity-chip antigravity-chip--business';
+  if (status === 'completed') return 'antigravity-chip antigravity-chip--success';
+  if (status === 'failed') return 'antigravity-chip antigravity-chip--error';
+  return 'antigravity-chip antigravity-chip--neutral';
+}
+
+function renderStatusPill(h, tone, label, extraProps = {}) {
+  return h(
+    'span',
+    { ...extraProps, className: `antigravity-status-pill antigravity-status-pill--${tone}` },
+    h('span', { className: 'antigravity-status-dot', 'aria-hidden': 'true' }),
+    h('span', { className: 'antigravity-status-word' }, label),
+  );
+}
 
 export function createPanelComponent({ React, translate = createTranslator(), bridge, uploader = null, getUploader = null }) {
   if (!React || typeof React.createElement !== 'function') {
@@ -1500,10 +1551,11 @@ export function createPanelComponent({ React, translate = createTranslator(), br
         'div',
         { className: 'antigravity-bridge__auth-info' },
         h('span', null, authText(t, 'auth.label')),
-        h(
-          'span',
-          { className: 'antigravity-bridge__phase', 'data-auth-badge': state.cliAuthStatus },
+        renderStatusPill(
+          h,
+          statusToneFromLogin(state.cliAuthStatus),
           authText(t, authStatusTextKey(state.cliAuthStatus)),
+          { 'data-auth-badge': state.cliAuthStatus },
         ),
       ),
       h(
@@ -1532,8 +1584,17 @@ export function createPanelComponent({ React, translate = createTranslator(), br
       ),
     );
 
-    if (state.cliAuthStatus === 'unknown') banners.push(h('p', { key: 'auth-unknown', className: 'antigravity-bridge__notice' }, authText(t, 'auth.terminalHint')));
-    banners.push(h('p', { key: 'auth-privacy', className: 'antigravity-bridge__notice', 'data-auth-privacy': '' }, authText(t, 'auth.privacy')));
+    const authNotes = [];
+    if (state.cliAuthStatus === 'unknown') authNotes.push(h('p', { key: 'auth-unknown', className: 'antigravity-bridge__notice' }, authText(t, 'auth.terminalHint')));
+    authNotes.push(h('p', { key: 'auth-privacy', className: 'antigravity-bridge__notice', 'data-auth-privacy': '' }, authText(t, 'auth.privacy')));
+    banners.push(
+      h(
+        'details',
+        { key: 'auth-notes', className: 'antigravity-bridge__details' },
+        h('summary', { className: 'antigravity-bridge__summary' }, authText(t, 'auth.notesSummary')),
+        h('div', { className: 'antigravity-bridge__details-body' }, authNotes),
+      ),
+    );
     if (state.cliExecutable) banners.push(h('p', { key: 'cli-path', className: 'antigravity-bridge__notice', 'data-cli-installation': state.cliInstallation }, `${state.cliExecutable} ${state.cliVersion}`));
     if (state.cliInstallation === 'missing') banners.push(h('p', { key: 'cli-install', className: 'antigravity-bridge__notice' }, authText(t, 'auth.installHint')));
     if (state.cliAuthStatus === 'unauthenticated') {
@@ -1652,7 +1713,12 @@ export function createPanelComponent({ React, translate = createTranslator(), br
                             'data-activity-kind': ev.kind,
                             'data-activity-status': ev.status,
                           },
-                          `${t(`activity.kind.${['execute', 'edit', 'read', 'other'].includes(ev.kind) ? ev.kind : 'unknown'}`)} · ${ev.title || '\u2014'} · ${ev.status || '\u2014'}`,
+                          h(
+                            'span',
+                            { className: 'antigravity-bridge__activity-row' },
+                            h('span', null, `${t(`activity.kind.${['execute', 'edit', 'read', 'other'].includes(ev.kind) ? ev.kind : 'unknown'}`)} · ${ev.title || '\u2014'}`),
+                            h('span', { className: activityChipClass(ev.status) }, ev.status || '\u2014'),
+                          ),
                         ),
                       ),
                     )
@@ -1668,7 +1734,7 @@ export function createPanelComponent({ React, translate = createTranslator(), br
           )
         : null,
       state.notice ? h('p', { className: 'antigravity-bridge__notice', role: 'status' }, state.notice) : null,
-      state.error ? h('p', { className: 'antigravity-bridge__error', role: 'alert' }, `${t('error.label')}: ${state.error}`) : null,
+      state.error ? h('p', { className: 'antigravity-bridge__error', role: 'alert', 'data-error-code': state.error }, t('error.label')) : null,
     );
 
     return h('section', { className: 'antigravity-bridge', 'aria-label': t('title'), 'data-phase': state.phase }, styleTag, header, body);
@@ -1684,7 +1750,7 @@ export const SIDEBAR_COPY = {
     'nativeActivity.readonly': '来自原生 ACP 会话的只读活动',
     'nativeActivity.empty': '本会话暂无原生工具活动',
     'nativeActivity.truncated': '仅保留最近部分活动记录',
-    'nativeActivity.localDerivedNote': '说明：updatedAt、source、truncated 为插件本地派生字段，非 ACP 原生字段。',
+    'nativeActivity.localDerivedNote': '更新时间、来源与截断标记由插件本地补充，非底层原始字段。',
   },
   en: {
     'sidebar.chooseSession': 'Select a DSH session',
@@ -1694,7 +1760,7 @@ export const SIDEBAR_COPY = {
     'nativeActivity.readonly': 'Read-only activity from native ACP session',
     'nativeActivity.empty': 'No native tool activity in this session',
     'nativeActivity.truncated': 'Showing most recent activity entries',
-    'nativeActivity.localDerivedNote': 'Note: updatedAt, source, and truncated are locally derived by the plugin, not ACP native fields.',
+    'nativeActivity.localDerivedNote': 'Timestamps, sources, and truncation flags are added locally by this plugin rather than reported directly.',
   },
 };
 
@@ -1702,16 +1768,25 @@ const SIDEBAR_STYLES = `
 .antigravity-sidebar-page { min-height: 100%; }
 .antigravity-sidebar-page__content { display: grid; gap: var(--dsw-alias-spacing-md, 12px); width: min(100%, 920px); margin-inline: auto; }
 .antigravity-sidebar-page__title { margin: 0; color: var(--dsw-alias-label-primary); font-size: 1.35rem; line-height: 1.2; }
-.antigravity-sidebar-page__session { display: grid; gap: 6px; color: var(--dsw-alias-label-secondary); font-size: .82rem; font-weight: 600; }
-.antigravity-sidebar-page__session select { width: 100%; min-height: 40px; }
+.antigravity-sidebar-page__session { display: grid; gap: 6px; color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; }
+.antigravity-sidebar-page__session select { width: 100%; height: 32px; min-height: 32px; padding: 4px 10px; }
 .antigravity-sidebar-page__empty { margin: 0; padding: 16px; color: var(--dsw-alias-label-secondary); background: var(--dsw-alias-bg-layer-1); border: 1px dashed var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); line-height: 1.5; }
-.antigravity-cli-status { display: grid; gap: 8px; padding: 14px 16px; background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); font-size: .84rem; }
-.antigravity-cli-status__title { margin: 0; font-size: 1rem; font-weight: 700; color: var(--dsw-alias-label-primary); }
+.antigravity-cli-status { display: grid; gap: var(--dsw-alias-spacing-md, 12px); padding: var(--dsw-alias-spacing-lg, 16px); background: var(--dsw-alias-bg-layer-1); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-md, 8px); font-size: .84rem; }
+.antigravity-cli-status__title { margin: 0; font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }
 .antigravity-cli-status__row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--dsw-alias-label-secondary); }
-.antigravity-cli-status__badge { padding: 2px 8px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); font-size: .78rem; }
-.antigravity-cli-status__reason { margin: 0; color: var(--dsw-alias-label-secondary); font-size: .78rem; line-height: 1.4; }
+.antigravity-cli-status__label { font-size: 12px; color: var(--dsw-alias-label-secondary); font-weight: 500; }
+.antigravity-cli-status__badge { padding: 2px 8px; border-radius: 999px; background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); font-size: 12px; }
+.antigravity-status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; }
+.antigravity-status-pill--success { color: var(--dsw-alias-state-success-primary, #15803d); }
+.antigravity-status-pill--error { color: var(--dsw-alias-state-error-primary, #b42318); }
+.antigravity-status-pill--warn { color: var(--dsw-alias-state-warn-primary, #b45309); }
+.antigravity-status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+.antigravity-status-word { font-weight: 700; }
+.antigravity-cli-status__details { margin: 0; padding: 6px 10px; background: var(--dsw-alias-bg-layer-2); border-radius: var(--dsw-alias-radius-sm, 6px); }
+.antigravity-cli-status__summary { cursor: pointer; font-size: 12px; line-height: 1.4; color: var(--dsw-alias-label-secondary); font-weight: 500; list-style-position: inside; }
+.antigravity-cli-status__reason { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.45; }
 .antigravity-cli-status__actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.antigravity-cli-status__actions button { min-height: 32px; padding: 6px 10px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; }
+.antigravity-cli-status__actions button { height: 32px; min-height: 32px; padding: 0 12px; color: var(--dsw-alias-label-primary); background: transparent; border: 1px solid var(--dsw-alias-border-l2, rgba(127, 127, 127, 0.28)); border-radius: var(--dsw-alias-radius-sm, 6px); cursor: pointer; font: inherit; font-size: 13px; font-weight: 500; }
 .antigravity-cli-status__error { margin: 0; padding: 8px 10px; color: var(--dsw-alias-state-error-primary, #b42318); background: var(--dsw-alias-bg-layer-2); border-left: 3px solid var(--dsw-alias-state-error-primary, #b42318); border-radius: var(--dsw-alias-radius-sm, 6px); font-size: .8rem; }
 .antigravity-cli-status__notice { margin: 0; color: var(--dsw-alias-label-secondary); font-size: .8rem; }
 `;
@@ -1900,16 +1975,17 @@ export function createCliSectionComponent({ React, translate: t = createTranslat
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'installation' },
-        h('span', null, `${t('cli.availability')}: ${installText}`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.availability')}:`),
+        renderStatusPill(h, statusToneFromInstall(state.installation), installText),
         h('span', { className: 'antigravity-cli-status__badge', 'data-cli-field': 'version' }, state.version || t('cli.unknownValue')),
         state.executable ? h('code', { 'data-cli-field': 'executable' }, state.executable) : null,
       ),
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'data-dir' },
-        h('span', null, `${t('cli.dataDir')}:`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.dataDir')}:`),
         h('code', null, state.dataDir || t('cli.dataDirMissing')),
-        h('span', { className: 'antigravity-cli-status__badge' }, writableText),
+        renderStatusPill(h, statusToneFromWritable(state.dataDirWritable), writableText),
       ),
       state.dataDirError
         ? h('p', { className: 'antigravity-cli-status__error', role: 'alert', 'data-cli-error': '' }, t('cli.dataDirError', { detail: state.dataDirError }))
@@ -1917,17 +1993,17 @@ export function createCliSectionComponent({ React, translate: t = createTranslat
       h(
         'div',
         { className: 'antigravity-cli-status__row', 'data-cli-field': 'login-state' },
-        h('span', null, `${t('cli.loginState')}: ${loginText}`),
+        h('span', { className: 'antigravity-cli-status__label' }, `${t('cli.loginState')}:`),
+        renderStatusPill(h, statusToneFromLogin(state.status), loginText),
       ),
-      state.status === 'unknown'
-        ? h(
-            'p',
-            { className: 'antigravity-cli-status__reason', 'data-cli-reason': '' },
-            t('cli.unknownReason', { methods: probe.authMethodCount ?? 0, session: probe.sessionProbe ?? 'skipped' }),
-          )
-        : null,
+      
       isProtocolAmbiguous
-        ? h('p', { className: 'antigravity-cli-status__reason', 'data-cli-reason': 'protocol_ambiguous' }, t('cli.unknownReasonProtocol'))
+        ? h(
+            'details',
+            { className: 'antigravity-cli-status__details' },
+            h('summary', { className: 'antigravity-cli-status__summary' }, t('cli.detailsSummary')),
+            h('p', { className: 'antigravity-cli-status__reason', 'data-cli-reason': 'protocol_ambiguous' }, t('cli.unknownReasonProtocol')),
+          )
         : null,
       state.status === 'unknown' && state.reasonCode && !isProtocolAmbiguous
         ? h(
