@@ -1,4 +1,4 @@
-#requires -Version 7.0
+﻿#requires -Version 7.0
 <#
 .SYNOPSIS
     Antigravity 桌面窗口 Windows UI Automation 驱动（只读观察 + 受控派发）。
@@ -114,6 +114,10 @@ namespace Aguia
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")]
         public static extern bool IsWindow(IntPtr hWnd);
         [DllImport("user32.dll")]
         public static extern bool IsWindowVisible(IntPtr hWnd);
@@ -127,6 +131,121 @@ namespace Aguia
         public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
         [DllImport("dwmapi.dll")]
         public static extern int DwmGetWindowAttribute(IntPtr hWnd, int dwAttribute, out int pvAttribute, int cbAttribute);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct INPUT
+        {
+            public uint type;
+            public INPUTUNION U;
+        }
+        [StructLayout(LayoutKind.Explicit)]
+        public struct INPUTUNION
+        {
+            [FieldOffset(0)] public MOUSEINPUT mi;
+            [FieldOffset(0)] public KEYBDINPUT ki;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+        [DllImport("user32.dll")]
+        public static extern bool SetCursorPos(int X, int Y);
+        [DllImport("user32.dll")]
+        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+        public static void ClickAt(int x, int y)
+        {
+            SetCursorPos(x, y);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+        }
+
+        private const uint INPUT_KEYBOARD = 1;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+        private const uint KEYEVENTF_UNICODE = 0x0004;
+        private const ushort VK_CONTROL = 0x11;
+        private const ushort VK_A = 0x41;
+        private const ushort VK_DELETE = 0x2E;
+
+        private static INPUT MakeKeyVk(ushort vk, bool keyUp)
+        {
+            var inp = new INPUT();
+            inp.type = INPUT_KEYBOARD;
+            inp.U.ki = new KEYBDINPUT
+            {
+                wVk = vk,
+                wScan = 0,
+                dwFlags = keyUp ? KEYEVENTF_KEYUP : 0u,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero
+            };
+            return inp;
+        }
+
+        private static INPUT MakeUnicodeKey(ushort ch, bool keyUp)
+        {
+            var inp = new INPUT();
+            inp.type = INPUT_KEYBOARD;
+            inp.U.ki = new KEYBDINPUT
+            {
+                wVk = 0,
+                wScan = ch,
+                dwFlags = keyUp ? (KEYEVENTF_UNICODE | KEYEVENTF_KEYUP) : KEYEVENTF_UNICODE,
+                time = 0,
+                dwExtraInfo = IntPtr.Zero
+            };
+            return inp;
+        }
+
+        public static uint SendCtrlAAndDelete()
+        {
+            var inputs = new INPUT[]
+            {
+                MakeKeyVk(VK_CONTROL, false),
+                MakeKeyVk(VK_A, false),
+                MakeKeyVk(VK_A, true),
+                MakeKeyVk(VK_CONTROL, true),
+                MakeKeyVk(VK_DELETE, false),
+                MakeKeyVk(VK_DELETE, true)
+            };
+            return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        }
+
+        public static uint SendUnicodeText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return 0;
+            var list = new List<INPUT>(text.Length * 2);
+            foreach (char ch in text)
+            {
+                // 绝不发送 Enter / CR / LF（VK_RETURN），防止触发意外提交。
+                if (ch == '\r' || ch == '\n') continue;
+                list.Add(MakeUnicodeKey((ushort)ch, false));
+                list.Add(MakeUnicodeKey((ushort)ch, true));
+            }
+            if (list.Count == 0) return 0;
+            return SendInput((uint)list.Count, list.ToArray(), Marshal.SizeOf(typeof(INPUT)));
+        }
 
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         [DllImport("user32.dll")]
@@ -229,7 +348,38 @@ function Test-AguiaAllowedExecutable {
     return $false
 }
 
+function Select-AguiaEligibleCandidates {
+    param($Provider, $Rows)
+    $eligible = @()
+    foreach ($row in @($Rows)) {
+        if ($null -eq $row) { continue }
+        $win = Get-FieldValue $row 'window'
+        if ($null -eq $win) { continue }
+        if (-not [bool](Get-FieldValue $win 'visible')) { continue }
+        if ([bool](Get-FieldValue $win 'minimized')) { continue }
+        if ([int](Get-FieldValue $win 'cloaked') -ne 0) { continue }
+        $hwndVal = ConvertTo-AguiaHwnd (Get-FieldValue $row 'hwnd')
+        if ($null -eq $hwndVal) { continue }
+        $uris = @()
+        try {
+            $tree = Get-UiaTree -Provider $Provider -Hwnd $hwndVal
+            $uris = @(Get-AguiaHttpDocumentUris -Nodes $tree.nodes)
+        } catch {
+            continue
+        }
+        if ($uris.Count -ne 1) { continue }
+        $copy = [ordered]@{}
+        foreach ($k in $row.Keys) { $copy[$k] = $row[$k] }
+        $copy['documentUriCount'] = $uris.Count
+        $copy['documentUris'] = @($uris)
+        $copy['uri'] = [string]$uris[0]
+        $eligible += $copy
+    }
+    return $eligible
+}
+
 function Get-AguiaCandidates {
+    param($Provider = $null)
     Initialize-AguiaNative
     $processes = @(Get-Process -Name Antigravity -ErrorAction SilentlyContinue)
     $pids = @($processes | ForEach-Object { $_.Id })
@@ -253,15 +403,16 @@ function Get-AguiaCandidates {
                 allowed     = if ($proc) { (Test-AguiaAllowedExecutable -ExePath $proc.exePath) } else { $false }
             }
             window    = [ordered]@{
-                visible    = $w.visible
-                minimized  = $w.minimized
-                cloaked    = $w.cloaked
-                isTopLevel = $w.isTopLevel
+                visible      = $w.visible
+                minimized    = $w.minimized
+                cloaked      = $w.cloaked
+                isTopLevel   = $w.isTopLevel
                 isForeground = ($w.hwnd -eq $foreground)
             }
         }
     }
-    return $rows
+    if ($null -eq $Provider) { return $rows }
+    return @(Select-AguiaEligibleCandidates -Provider $Provider -Rows $rows)
 }
 
 # ============================================================================
@@ -379,25 +530,80 @@ function New-RealUiaProvider {
             }
             $p.Invoke()
         }
-        windowInfo  = { param([long]$Hwnd) Get-AguiaWindowIdentity -Hwnd $Hwnd }
-        processInfo = { param([int]$ProcessId) Get-AguiaProcessIdentity -ProcessId $ProcessId }
-        foreground  = { Get-AguiaForegroundHwnd }
-        candidates  = { Get-AguiaCandidates }
+        windowInfo    = { param([long]$Hwnd) Get-AguiaWindowIdentity -Hwnd $Hwnd }
+        processInfo   = { param([int]$ProcessId) Get-AguiaProcessIdentity -ProcessId $ProcessId }
+        foreground    = { Get-AguiaForegroundHwnd }
+        setForeground = { param([long]$Hwnd) [Aguia.Native]::SetForegroundWindow([IntPtr]$Hwnd) }
+        restoreWindow = { param([long]$Hwnd) [Aguia.Native]::ShowWindow([IntPtr]$Hwnd, 9) }
+        focus         = { param($El) $El.SetFocus() }
+        hasFocus      = { param($El) try { [bool]$El.Current.HasKeyboardFocus } catch { $false } }
+        clickFocus    = {
+            param($El)
+            try {
+                $pt = [System.Windows.Point]::new(0, 0)
+                if ($El.TryGetClickablePoint([ref]$pt)) {
+                    [Aguia.Native]::ClickAt([int]$pt.X, [int]$pt.Y)
+                    return $true
+                }
+            } catch { }
+            try {
+                $rect = $El.Current.BoundingRectangle
+                if (-not $rect.IsEmpty -and $rect.Width -gt 0 -and $rect.Height -gt 0) {
+                    [Aguia.Native]::ClickAt([int]($rect.Left + $rect.Width / 2), [int]($rect.Top + $rect.Height / 2))
+                    return $true
+                }
+            } catch { }
+            return $false
+        }
+        clearInput    = { param($El = $null) [void][Aguia.Native]::SendCtrlAAndDelete() }
+        typeText      = { param([string]$Text, $El = $null) [void][Aguia.Native]::SendUnicodeText($Text) }
+        candidates    = { param($SelfProvider) Get-AguiaCandidates -Provider $SelfProvider }
     }
+}
+
+function Find-AguiaFakeWindowEntry {
+    param($Scenario, [long]$Hwnd)
+    $wins = Get-FieldValue $Scenario 'windows'
+    if ($null -eq $wins) { return $null }
+    foreach ($entry in @($wins)) {
+        $eh = ConvertTo-AguiaHwnd (Get-FieldValue $entry 'hwnd')
+        if ($null -ne $eh -and $eh -eq $Hwnd) { return $entry }
+    }
+    return $null
 }
 
 function New-FakeUiaProvider {
     param($Scenario)
     $script:AguiaFakeScenario = $Scenario
     $script:AguiaFakeState = @{
-        invokes = 0
-        invoked = $false
-        writes  = [System.Collections.Generic.List[object]]::new()
+        invokes           = 0
+        invoked           = $false
+        foregroundCalls   = 0
+        foregroundReads   = 0
+        foregroundHwnd    = $null
+        keyCalls          = 0
+        clears            = 0
+        hasFocus          = $false
+        clickFocusCalls   = 0
+        valueReads        = 0
+        clearedAfterWrite = $false
+        freshScans        = 0
+        writes            = [System.Collections.Generic.List[object]]::new()
     }
+    $script:AguiaFakeDispatchPhase = 'none'
+    $script:AguiaFakeFocusedElement = $null
     $script:AguiaFakeRoot = New-AguiaFakeElement -Node (Get-FieldValue $Scenario 'tree') -Parent $null
     @{
         kind        = 'fake'
-        root        = { param([long]$Hwnd) $script:AguiaFakeRoot }
+        root        = {
+            param([long]$Hwnd)
+            $entry = Find-AguiaFakeWindowEntry -Scenario $script:AguiaFakeScenario -Hwnd $Hwnd
+            if ($null -ne $entry) {
+                $t = Get-FieldValue $entry 'tree'
+                if ($null -ne $t) { return (New-AguiaFakeElement -Node $t -Parent $null) }
+            }
+            $script:AguiaFakeRoot
+        }
         children    = {
             param($El)
             if ((Get-FieldValue $script:AguiaFakeScenario 'failAfterInvoke') -eq 'tree' -and $script:AguiaFakeState.invoked -eq $true) {
@@ -406,20 +612,162 @@ function New-FakeUiaProvider {
             @($El.Children)
         }
         info        = { param($El) Get-AguiaFakeInfo -Element $El }
-        value       = { param($El) $El.Value }
+        value       = {
+            param($El)
+            if ($script:AguiaFakeState.writes.Count -gt 0 -and -not $script:AguiaFakeState.clearedAfterWrite) {
+                if ($script:AguiaFakeDispatchPhase -eq 'fresh_scan' -and (Get-FieldValue $script:AguiaFakeScenario 'freshStaleOnce') -eq $true -and $script:AguiaFakeState.freshScans -le 1) {
+                    if ([string](Get-FieldValue $El.Node 'type') -eq 'ComboBox' -and [string](Get-FieldValue $El.Node 'name') -eq $script:AguiaComposerInputName) {
+                        return ''
+                    }
+                }
+                $delayReads = Get-FieldValue $script:AguiaFakeScenario 'readbackDelayReads'
+                if ($null -ne $delayReads -and [int]$delayReads -gt 0) {
+                    $script:AguiaFakeState.valueReads++
+                    if ($script:AguiaFakeState.valueReads -le [int]$delayReads) {
+                        return ''
+                    }
+                }
+            }
+            $El.Value
+        }
         setValue    = { param($El, [string]$Text) Invoke-AguiaFakeSetValue -Element $El -Text $Text }
         invoke      = { param($El) Invoke-AguiaFakeInvoke -Element $El }
-        windowInfo  = { param([long]$Hwnd) Get-AguiaFakeWindowInfo -Scenario $script:AguiaFakeScenario -Hwnd $Hwnd }
+        windowInfo  = {
+            param([long]$Hwnd)
+            $entry = Find-AguiaFakeWindowEntry -Scenario $script:AguiaFakeScenario -Hwnd $Hwnd
+            if ($null -ne $entry) {
+                $info = Get-AguiaFakeWindowInfo -Scenario $entry -Hwnd $Hwnd
+                if ($null -ne $info -and [int]$info.pid -le 0) {
+                    $proc = Get-FieldValue $script:AguiaFakeScenario 'process'
+                    if ($null -ne $proc) { $info.pid = [int](Get-FieldValue $proc 'pid') }
+                }
+                return $info
+            }
+            Get-AguiaFakeWindowInfo -Scenario $script:AguiaFakeScenario -Hwnd $Hwnd
+        }
         processInfo = { param([int]$ProcessId) Get-AguiaFakeProcessInfo -Scenario $script:AguiaFakeScenario -ProcessId $ProcessId }
         foreground  = {
+            $script:AguiaFakeState.foregroundReads++
             $w = Get-FieldValue $script:AguiaFakeScenario 'window'
             if ((Get-FieldValue $w 'foregroundThrows') -eq $true) { throw 'fake_foreground_failure' }
             if ((Get-FieldValue $w 'foregroundThrowsAfterInvoke') -eq $true -and $script:AguiaFakeState.invoked -eq $true) {
                 throw 'fake_foreground_failure_after_invoke'
             }
+            $fgMode = [string](Get-FieldValue $script:AguiaFakeScenario 'foregroundMode')
+            $targetHwnd = ConvertTo-AguiaHwnd (Get-FieldValue $w 'hwnd')
+            if ($null -eq $targetHwnd) { $targetHwnd = $script:AguiaFakeState.foregroundHwnd }
+            if ($null -eq $targetHwnd) { $targetHwnd = [long]0x8B11EA }
+            if ($fgMode -eq 'mismatch') { return [long]0x1 }
+            if ($fgMode -eq 'mismatchOnce') {
+                if ($script:AguiaFakeState.foregroundCalls -le 1) { return [long]0x1 }
+                return $targetHwnd
+            }
+            if ($null -ne $script:AguiaFakeState.foregroundHwnd) { return [long]$script:AguiaFakeState.foregroundHwnd }
+            if ($fgMode -eq 'match') { return $targetHwnd }
             if ((Get-FieldValue $w 'foreground') -eq $true) { [long]0x8B11EA } else { [long]0x1 }
         }
+        setForeground = {
+            param([long]$Hwnd)
+            $script:AguiaFakeState.foregroundCalls++
+            $script:AguiaFakeState.foregroundHwnd = $Hwnd
+            $true
+        }
+        restoreWindow = {
+            param([long]$Hwnd)
+            $true
+        }
+        focus = {
+            param($El)
+            $script:AguiaFakeFocusedElement = $El
+            $fMode = [string](Get-FieldValue $script:AguiaFakeScenario 'focusMode')
+            if ($fMode -eq 'clickWorks' -or $fMode -eq 'noFocus') {
+                $script:AguiaFakeState.hasFocus = $false
+            } else {
+                $script:AguiaFakeState.hasFocus = $true
+            }
+        }
+        hasFocus = {
+            param($El = $null)
+            [bool]$script:AguiaFakeState.hasFocus
+        }
+        clickFocus = {
+            param($El = $null)
+            $script:AguiaFakeState.clickFocusCalls++
+            $fMode = [string](Get-FieldValue $script:AguiaFakeScenario 'focusMode')
+            if ($fMode -ne 'noFocus') {
+                $script:AguiaFakeState.hasFocus = $true
+                return $true
+            }
+            $false
+        }
+        clearInput = {
+            param($El = $null)
+            $targetEl = if ($null -ne $El) { $El } else { $script:AguiaFakeFocusedElement }
+            $script:AguiaFakeState.clears++
+            $script:AguiaFakeState.keyCalls++
+            if ($script:AguiaFakeState.writes.Count -gt 0) { $script:AguiaFakeState.clearedAfterWrite = $true }
+            $baseline = Get-FieldValue $script:AguiaFakeScenario 'emptyBaseline'
+            if ($null -ne $targetEl) {
+                $targetEl.Value = if ($null -ne $baseline) { [string]$baseline } else { '' }
+            }
+        }
+        typeText = {
+            param([string]$Text, $El = $null)
+            $targetEl = if ($null -ne $El) { $El } else { $script:AguiaFakeFocusedElement }
+            $script:AguiaFakeState.keyCalls++
+            $script:AguiaFakeState.clearedAfterWrite = $false
+            $kb = [string](Get-FieldValue $script:AguiaFakeScenario 'keyboard')
+            $readback = [string](Get-FieldValue $script:AguiaFakeScenario 'readback')
+            $never = (Get-FieldValue $script:AguiaFakeScenario 'readbackNever') -eq $true
+            if ($kb -eq 'throw' -or $readback -eq 'throw') { throw 'fake_keyboard_failure' }
+            if ($never -or $kb -eq 'drop') {
+                $applied = ''
+            } elseif ($kb -eq 'truncate' -or ([string]::IsNullOrEmpty($kb) -and $readback -eq 'truncate')) {
+                $applied = if ($Text.Length -gt 4) { $Text.Substring(0, 4) } else { $Text }
+            } else {
+                $applied = $Text
+            }
+            if ($null -ne $targetEl) { $targetEl.Value = $applied }
+            $script:AguiaFakeState.writes.Add([ordered]@{ text = $Text; applied = $applied; mode = 'keyboard' })
+        }
         candidates  = {
+            param($SelfProvider)
+            $wins = Get-FieldValue $script:AguiaFakeScenario 'windows'
+            if ($null -ne $wins) {
+                $proc = Get-FieldValue $script:AguiaFakeScenario 'process'
+                $rawRows = @()
+                foreach ($entry in @($wins)) {
+                    $w = Get-FieldValue $entry 'window'
+                    if ($null -eq $w) { continue }
+                    $winClass = [string](Get-FieldValue $w 'class')
+                    if ($winClass -ne '' -and $winClass -ne 'Chrome_WidgetWin_1') { continue }
+                    $hwndRaw = Get-FieldValue $entry 'hwnd'
+                    $hwndNum = ConvertTo-AguiaHwnd $hwndRaw
+                    if ($null -eq $hwndNum) { continue }
+                    $winPid = Get-FieldValue $w 'pid'
+                    if ($null -eq $winPid) { $winPid = Get-FieldValue $entry 'pid' }
+                    if ($null -eq $winPid) { $winPid = Get-FieldValue $proc 'pid' }
+                    $rawRows += [ordered]@{
+                        pid       = [int]$winPid
+                        startedAt = ConvertTo-AguiaIsoText (Get-FieldValue $proc 'startedAtUs')
+                        hwnd      = ('0x{0:X}' -f $hwndNum)
+                        exe       = [ordered]@{
+                            path        = [string](Get-FieldValue $proc 'exePath')
+                            productName = [string](Get-FieldValue $proc 'productName')
+                            fileVersion = [string](Get-FieldValue $proc 'fileVersion')
+                            allowed     = (Test-AguiaAllowedExecutable -ExePath ([string](Get-FieldValue $proc 'exePath')))
+                        }
+                        window    = [ordered]@{
+                            visible      = [bool](Get-FieldValue $w 'visible')
+                            minimized    = [bool](Get-FieldValue $w 'minimized')
+                            cloaked      = [int](Get-FieldValue $w 'cloaked')
+                            isTopLevel   = [bool](Get-FieldValue $w 'isTopLevel')
+                            isForeground = [bool](Get-FieldValue $w 'foreground')
+                        }
+                    }
+                }
+                return @(Select-AguiaEligibleCandidates -Provider $SelfProvider -Rows $rawRows)
+            }
             $c = Get-FieldValue $script:AguiaFakeScenario 'candidates'
             if ($null -eq $c) { @() } else { @($c) }
         }
@@ -481,6 +829,10 @@ function Invoke-AguiaFakeSetValue {
     $patterns = @(Get-AguiaFakePatterns -Element $Element)
     if ($patterns -notcontains 'Value') { throw 'value_pattern_missing' }
     if ((Get-AguiaFakePatterns -Element $Element) -contains 'ReadOnly') { throw 'value_pattern_readonly' }
+    if ((Get-FieldValue $script:AguiaFakeScenario 'setValueNoop') -eq $true) {
+        # 模拟 Electron 富文本框：ValuePattern.SetValue 静默无效。
+        return
+    }
     $readback = [string](Get-FieldValue $script:AguiaFakeScenario 'readback')
     if ($readback -eq 'throw') { throw 'fake_setvalue_failure' }
     if ($readback -eq 'truncate') {
@@ -619,6 +971,23 @@ function Get-NormalizedUri {
     if ([string]::IsNullOrEmpty($path)) { $path = '/' }
     # 片段（#...）不参与比较：同一会话页的锚点差异不应视为不同目标。
     return ('{0}://{1}{2}{3}{4}' -f $scheme, $hostName, $port, $path, $uri.Query)
+}
+
+function Get-UriIdentityKey {
+    param([string]$Raw)
+    if ([string]::IsNullOrWhiteSpace($Raw)) { return $null }
+    $uri = $null
+    if (-not [System.Uri]::TryCreate($Raw.Trim(), [System.UriKind]::Absolute, [ref]$uri)) { return $null }
+    if ($uri.Scheme -notin @('http', 'https')) { return $null }
+    if ([string]::IsNullOrEmpty($uri.Host)) { return $null }
+    $scheme = $uri.Scheme.ToLowerInvariant()
+    $hostName = $uri.Host.ToLowerInvariant()
+    if ($hostName.Contains(':')) { $hostName = '[' + $hostName + ']' }
+    $port = if ($uri.IsDefaultPort) { '' } else { ':' + $uri.Port }
+    $path = $uri.AbsolutePath
+    if ([string]::IsNullOrEmpty($path)) { $path = '/' }
+    # 会话链接对比只取 scheme+host+port+path（不含 query 与 fragment）。
+    return ('{0}://{1}{2}{3}' -f $scheme, $hostName, $port, $path)
 }
 
 function Test-AguiaNodeDescendsFrom {
@@ -919,6 +1288,8 @@ function Find-AguiaSessionLink {
         }
         if ($sidebarIndex -lt 0) { return [ordered]@{ indexes = @(); scoped = $false } }
     }
+    $targetKey = Get-UriIdentityKey -Raw $NormalizedUri
+    if ([string]::IsNullOrEmpty($targetKey)) { return [ordered]@{ indexes = @(); scoped = ($Scope -eq 'sidebar') } }
     $matches = @()
     for ($i = 0; $i -lt $Nodes.Count; $i++) {
         $n = $Nodes[$i]
@@ -926,8 +1297,8 @@ function Find-AguiaSessionLink {
         if (-not $n.enabled -or $n.offscreen) { continue }
         if ($null -eq $n.value) { continue }
         if ($Scope -eq 'sidebar' -and -not (Test-AguiaNodeDescendsFrom -Nodes $Nodes -Index $i -AncestorIndex $sidebarIndex)) { continue }
-        $norm = Get-NormalizedUri -Raw ([string]$n.value)
-        if ($norm -ceq $NormalizedUri) { $matches += $i }
+        $key = Get-UriIdentityKey -Raw ([string]$n.value)
+        if ($key -ceq $targetKey) { $matches += $i }
     }
     [ordered]@{ indexes = $matches; scoped = ($Scope -eq 'sidebar') }
 }
@@ -1125,7 +1496,7 @@ function Find-AguiaComposer {
         $value = [string]$Nodes[$inputIndex].value
         $editable = if ($null -eq $Nodes[$inputIndex].valueReadOnly) { $null } else { -not [bool]$Nodes[$inputIndex].valueReadOnly }
     }
-    $empty = if ($null -ne $value) { $value.Length -eq 0 } else { $null }
+    $empty = if ($null -ne $value) { $value.Length -eq 0 -or ($value -match '^[ \t\r]*\n$') } else { $null }
     [ordered]@{
         containerIndex = $containerIndex
         inputIndexes   = $inputIndexes
@@ -1384,8 +1755,22 @@ function Get-AguiaSnapshot {
 # 7. dispatch：唯一空 composer -> 精确写入与读回 -> 单次 Invoke
 # ============================================================================
 
+function ConvertFrom-AguiaComposerReadback {
+    param($Raw)
+    if ($null -eq $Raw) { return $null }
+    $s = [string]$Raw
+    if ($s -match '^[ \t\r]*\n$') { return '' }
+    return ($s -replace '\r?\n$', '')
+}
+
 function Set-AguiaComposerValue {
     param($Provider, $Element, [string]$Text)
+    if ($null -ne $Provider.focus) { & $Provider.focus $Element }
+    if ($null -ne $Provider.clearInput) { & $Provider.clearInput $Element }
+    if ($null -ne $Provider.typeText) {
+        & $Provider.typeText $Text $Element
+        return
+    }
     & $Provider.setValue $Element $Text
 }
 
@@ -1394,7 +1779,7 @@ function Restore-AguiaComposer {
     $result = [ordered]@{ attempted = $false; ok = $false; reason = $null }
     if ($null -eq $Element) { $result.reason = 'composer_missing'; return $result }
     $current = $null
-    try { $current = & $Provider.value $Element } catch { $current = $null }
+    try { $current = ConvertFrom-AguiaComposerReadback (& $Provider.value $Element) } catch { $current = $null }
     if ($null -ne $current -and $current.Length -eq 0) {
         $result.ok = $true
         $result.reason = 'already_empty'
@@ -1402,8 +1787,13 @@ function Restore-AguiaComposer {
     }
     $result.attempted = $true
     try {
-        & $Provider.setValue $Element ''
-        $after = & $Provider.value $Element
+        if ($null -ne $Provider.focus) { & $Provider.focus $Element }
+        if ($null -ne $Provider.clearInput) {
+            & $Provider.clearInput $Element
+        } else {
+            & $Provider.setValue $Element ''
+        }
+        $after = ConvertFrom-AguiaComposerReadback (& $Provider.value $Element)
         $result.ok = ($null -ne $after -and $after.Length -eq 0)
         if (-not $result.ok) { $result.reason = 'restore_readback_mismatch' }
     } catch {
@@ -1429,6 +1819,9 @@ function Invoke-AguiaDispatch {
     }
     if ($message.Contains([char]0)) {
         Throw-Aguia 'bad_request' 'message 不允许包含 NUL 字符' @{ field = 'message' }
+    }
+    if ($message.Contains("`r") -or $message.Contains("`n")) {
+        Throw-Aguia 'bad_request' 'message 不允许包含换行（Enter 会触发发送）' @{ field = 'message' }
     }
 
     $target = Get-FieldValue $Request 'target'
@@ -1506,6 +1899,21 @@ function Invoke-AguiaDispatch {
     $inputIndex = [int]$composer.inputIndex
     $inputElement = $view.nodes[$inputIndex].element
 
+    # 键盘注入前必须把目标窗口置前并复核；不一致则恢复+置前重试一次，仍不一致直接 not_sent（零字符写入）。
+    if ($null -ne $Provider.setForeground) {
+        [void](& $Provider.setForeground $targetSpec.hwnd)
+        $fg = $null
+        try { $fg = & $Provider.foreground } catch { $fg = $null }
+        if ($fg -ne $targetSpec.hwnd) {
+            if ($null -ne $Provider.restoreWindow) { [void](& $Provider.restoreWindow $targetSpec.hwnd) }
+            [void](& $Provider.setForeground $targetSpec.hwnd)
+            try { $fg = & $Provider.foreground } catch { $fg = $null }
+            if ($fg -ne $targetSpec.hwnd) {
+                return (& $refuse 'foreground_unavailable' 'foreground_unavailable')
+            }
+        }
+    }
+
     $result.diagnostics.foregroundChangedBeforeWrite = $null
     try {
         if ($null -ne $foregroundBefore) {
@@ -1516,6 +1924,15 @@ function Invoke-AguiaDispatch {
     }
 
     $script:AguiaDispatchBoundary = 'writing'
+    if ($null -ne $Provider.focus) { & $Provider.focus $inputElement }
+    if ($null -ne $Provider.hasFocus) {
+        if (-not (& $Provider.hasFocus $inputElement)) {
+            if ($null -ne $Provider.clickFocus) { [void](& $Provider.clickFocus $inputElement) }
+            if (-not (& $Provider.hasFocus $inputElement)) {
+                return (& $refuse 'foreground_unavailable' 'foreground_unavailable')
+            }
+        }
+    }
     try {
         Set-AguiaComposerValue -Provider $Provider -Element $inputElement -Text $message
     } catch {
@@ -1528,15 +1945,26 @@ function Invoke-AguiaDispatch {
     }
 
     $readback = $null
-    try { $readback = & $Provider.value $inputElement } catch { $readback = $null }
+    $pollWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $pollCount = 0
+    while ($true) {
+        $pollCount++
+        $readbackRaw = $null
+        try { $readbackRaw = & $Provider.value $inputElement } catch { $readbackRaw = $null }
+        $readback = ConvertFrom-AguiaComposerReadback $readbackRaw
+        if ($null -ne $readback -and $readback -ceq $message) { break }
+        if ($pollWatch.ElapsedMilliseconds -ge 2000) { break }
+        Start-Sleep -Milliseconds 100
+    }
+    $result.diagnostics['readbackPolls'] = $pollCount
     if ($null -eq $readback -or $readback -cne $message) {
         $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
         $result.status = 'not_sent'
         $result.reason = 'readback_mismatch'
         $result.code = 'readback_mismatch'
         $result.detail = [ordered]@{
-            expectedLength = $message.Length
-            actualLength   = if ($null -ne $readback) { $readback.Length } else { $null }
+            expectedLength   = $message.Length
+            actualLength     = if ($null -ne $readback) { $readback.Length } else { $null }
             composerRestored = $restore.ok
         }
         return $result
@@ -1545,8 +1973,11 @@ function Invoke-AguiaDispatch {
     $script:AguiaDispatchBoundary = 'written'
 
     # 写入后重新校验：目标未漂移、仍空权限卡、composer 未被替换、Send 唯一。
+    $script:AguiaFakeDispatchPhase = 'fresh_scan'
+    if ($null -ne $script:AguiaFakeState) { $script:AguiaFakeState.freshScans++ }
     $freshScan = Get-AguiaTargetTree -Provider $Provider -Hwnd $targetSpec.hwnd -NormalizedUri $targetSpec.uri -Attempts 2 -DelayMs 150
     if ($freshScan.documentIndex -lt 0) {
+        $script:AguiaFakeDispatchPhase = 'none'
         $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
         $result.status = 'not_sent'
         $result.reason = 'target_drift_before_invoke'
@@ -1557,6 +1988,7 @@ function Invoke-AguiaDispatch {
     $freshNodes = $freshScan.tree.nodes
     $freshPermission = Find-AguiaPermissionCard -Nodes $freshNodes
     if ($freshPermission.found) {
+        $script:AguiaFakeDispatchPhase = 'none'
         $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
         $result.status = 'not_sent'
         $result.reason = 'permission_pending'
@@ -1566,6 +1998,7 @@ function Invoke-AguiaDispatch {
     }
     $freshComposer = Find-AguiaComposer -Nodes $freshNodes
     if (-not $freshComposer.unique) {
+        $script:AguiaFakeDispatchPhase = 'none'
         $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
         $result.status = 'not_sent'
         $result.reason = 'composer_changed_before_invoke'
@@ -1573,12 +2006,54 @@ function Invoke-AguiaDispatch {
         $result.detail = [ordered]@{ composerRestored = $restore.ok }
         return $result
     }
-    if ($null -eq $freshComposer.value -or $freshComposer.value -cne $message) {
-        $result.status = 'not_sent'
-        $result.reason = 'composer_value_changed_before_invoke'
-        $result.code = 'readback_mismatch'
-        return $result
+    $freshValue = ConvertFrom-AguiaComposerReadback $freshComposer.value
+    if ($null -eq $freshValue -or $freshValue -cne $message) {
+        Start-Sleep -Milliseconds 250
+        if ($null -ne $script:AguiaFakeState) { $script:AguiaFakeState.freshScans++ }
+        $result.diagnostics['freshScanRetries'] = 1
+        $freshScan = Get-AguiaTargetTree -Provider $Provider -Hwnd $targetSpec.hwnd -NormalizedUri $targetSpec.uri -Attempts 1 -DelayMs 0
+        if ($freshScan.documentIndex -lt 0) {
+            $script:AguiaFakeDispatchPhase = 'none'
+            $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
+            $result.status = 'not_sent'
+            $result.reason = 'target_drift_before_invoke'
+            $result.code = 'target_drift'
+            $result.detail = [ordered]@{ composerRestored = $restore.ok }
+            return $result
+        }
+        $freshNodes = $freshScan.tree.nodes
+        $freshPermission = Find-AguiaPermissionCard -Nodes $freshNodes
+        if ($freshPermission.found) {
+            $script:AguiaFakeDispatchPhase = 'none'
+            $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
+            $result.status = 'not_sent'
+            $result.reason = 'permission_pending'
+            $result.code = 'permission_pending'
+            $result.detail = [ordered]@{ composerRestored = $restore.ok }
+            return $result
+        }
+        $freshComposer = Find-AguiaComposer -Nodes $freshNodes
+        if (-not $freshComposer.unique) {
+            $script:AguiaFakeDispatchPhase = 'none'
+            $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
+            $result.status = 'not_sent'
+            $result.reason = 'composer_changed_before_invoke'
+            $result.code = 'composer_changed'
+            $result.detail = [ordered]@{ composerRestored = $restore.ok }
+            return $result
+        }
+        $freshValue = ConvertFrom-AguiaComposerReadback $freshComposer.value
+        if ($null -eq $freshValue -or $freshValue -cne $message) {
+            $script:AguiaFakeDispatchPhase = 'none'
+            $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
+            $result.status = 'not_sent'
+            $result.reason = 'composer_value_changed_before_invoke'
+            $result.code = 'readback_mismatch'
+            $result.detail = [ordered]@{ composerRestored = $restore.ok }
+            return $result
+        }
     }
+    $script:AguiaFakeDispatchPhase = 'none'
     $send = Find-AguiaSendControl -Nodes $freshNodes -ContainerIndex $freshComposer.containerIndex
     if ($send.indexes.Count -eq 0) {
         $restore = Restore-AguiaComposer -Provider $Provider -Element $inputElement
@@ -1713,11 +2188,107 @@ function Invoke-AguiaDispatch {
 # 8. 入口：解析请求、inspect / dispatch、错误封装
 # ============================================================================
 
+function Invoke-AguiaProbeWindow {
+    param($Provider, $Request)
+    $rawTarget = Get-FieldValue $Request 'target'
+    if ($null -eq $rawTarget) { $rawTarget = $Request }
+    $rawPid = Get-FieldValue $rawTarget 'pid'
+    $processId = 0
+    if ($null -eq $rawPid -or -not [int]::TryParse([string]$rawPid, [ref]$processId) -or $processId -le 0) {
+        Throw-Aguia 'bad_request' 'pid 必须是正整数' @{ field = 'pid' }
+    }
+    $hwnd = ConvertTo-AguiaHwnd (Get-FieldValue $rawTarget 'hwnd')
+    if ($null -eq $hwnd) {
+        Throw-Aguia 'bad_request' 'hwnd 必须是正整数或 0x 十六进制字符串' @{ field = 'hwnd' }
+    }
+    $startedRaw = ConvertTo-AguiaIsoText (Get-FieldValue $rawTarget 'startedAt')
+    $started = [DateTimeOffset]::MinValue
+    $style = [System.Globalization.DateTimeStyles]::RoundtripKind
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    if ([string]::IsNullOrWhiteSpace($startedRaw) -or -not [DateTimeOffset]::TryParse($startedRaw, $culture, $style, [ref]$started)) {
+        Throw-Aguia 'bad_request' 'startedAt 必须是带时区的 ISO-8601 时间' @{ field = 'startedAt' }
+    }
+    $probeSpec = [ordered]@{
+        pid       = $processId
+        hwnd      = [long]$hwnd
+        hwndHex   = ('0x{0:X}' -f $hwnd)
+        startedAt = $started.ToUniversalTime().ToString('o')
+    }
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $foregroundBefore = & $Provider.foreground
+    $proc = Test-AguiaProcessIdentity -Provider $Provider -TargetSpec $probeSpec
+    $window = Test-AguiaWindowIdentity -Provider $Provider -TargetSpec $probeSpec
+    $tree = Get-UiaTree -Provider $Provider -Hwnd $probeSpec.hwnd
+    $uris = @(Get-AguiaHttpDocumentUris -Nodes $tree.nodes)
+    if ($uris.Count -eq 0) {
+        Throw-Aguia 'uri_mismatch' '窗口内未找到 http(s) Document URI' @{ field = 'uri'; documentUriCount = 0 }
+    }
+    if ($uris.Count -gt 1) {
+        Throw-Aguia 'uri_mismatch' '窗口内存在多个 http(s) Document URI，无法唯一确定' @{ field = 'uri'; documentUriCount = $uris.Count }
+    }
+    $docUri = [string]$uris[0]
+    $linkResult = Find-AguiaSessionLink -Nodes $tree.nodes -NormalizedUri $docUri -Scope 'sidebar'
+    $linkEvidence = 'sidebar'
+    $links = @($linkResult.indexes)
+    if ($links.Count -eq 0) {
+        $linkResult = Find-AguiaSessionLink -Nodes $tree.nodes -NormalizedUri $docUri -Scope 'window'
+        $linkEvidence = 'window'
+        $links = @($linkResult.indexes)
+    }
+    if ($links.Count -eq 0) {
+        Throw-Aguia 'session_link_not_found' '未找到指向 Document URI 的可见会话链接' @{ field = 'sessionLink'; documentUriCount = 1 }
+    }
+    if ($links.Count -gt 1) {
+        Throw-Aguia 'session_link_ambiguous' '存在多个指向 Document URI 的可见会话链接' @{ field = 'sessionLink'; count = $links.Count; documentUriCount = 1 }
+    }
+    $foregroundAfter = & $Provider.foreground
+    $stopwatch.Stop()
+
+    $fullSpec = [ordered]@{
+        pid       = $probeSpec.pid
+        startedAt = $probeSpec.startedAt
+        hwnd      = $probeSpec.hwnd
+        uri       = $docUri
+    }
+    $targetKey = Get-AguiaTargetKey -TargetSpec $fullSpec
+    [ordered]@{
+        ok            = $true
+        action        = 'probe_window'
+        driverVersion = $script:AguiaDriverVersion
+        targetKey     = $targetKey
+        target        = [ordered]@{
+            pid       = $probeSpec.pid
+            startedAt = $probeSpec.startedAt
+            hwnd      = $probeSpec.hwndHex
+            uri       = $docUri
+        }
+        verified      = [ordered]@{
+            process      = $true
+            startTime    = $true
+            executable   = $true
+            window       = $true
+            documentUri  = $true
+            sessionLink  = 'unique'
+            linkEvidence = $linkEvidence
+        }
+        diagnostics   = [ordered]@{
+            documentUriCount = $uris.Count
+            elapsedMs        = $stopwatch.ElapsedMilliseconds
+            foreground       = [ordered]@{
+                before  = ('0x{0:X}' -f [long]$foregroundBefore)
+                after   = ('0x{0:X}' -f [long]$foregroundAfter)
+                changed = ([long]$foregroundBefore -ne [long]$foregroundAfter)
+            }
+        }
+    }
+}
+
 function Invoke-AguiaInspect {
     param($Provider, $Request)
     $target = Get-FieldValue $Request 'target'
     if ($null -eq $target) {
-        $candidates = @(& $Provider.candidates)
+        $candidates = @(& $Provider.candidates $Provider)
         return [ordered]@{
             ok            = $true
             action        = 'inspect'
@@ -1794,9 +2365,9 @@ function Invoke-AguiaDriver {
         }
         $action = [string](Get-FieldValue $request 'action')
         if ([string]::IsNullOrWhiteSpace($action)) {
-            Throw-Aguia 'bad_request' "缺少 action（'inspect' 或 'dispatch'）"
+            Throw-Aguia 'bad_request' "缺少 action（'inspect'、'dispatch' 或 'probe_window'）"
         }
-        if ($action -notin @('inspect', 'dispatch')) {
+        if ($action -notin @('inspect', 'dispatch', 'probe_window')) {
             Throw-Aguia 'bad_request' ("不支持的 action: " + $action)
         }
         $activeProvider = $Provider
@@ -1806,7 +2377,19 @@ function Invoke-AguiaDriver {
         if ($action -eq 'inspect') {
             return Invoke-AguiaInspect -Provider $activeProvider -Request $request
         }
-        return Invoke-AguiaDispatch -Provider $activeProvider -Request $request
+        if ($action -eq 'probe_window') {
+            return Invoke-AguiaProbeWindow -Provider $activeProvider -Request $request
+        }
+        $out = Invoke-AguiaDispatch -Provider $activeProvider -Request $request
+        if ($activeProvider.kind -eq 'fake' -and $null -ne $script:AguiaFakeState) {
+            if ($null -eq $out.diagnostics) { $out.diagnostics = [ordered]@{} }
+            $out.diagnostics['fakeWrites'] = @($script:AguiaFakeState.writes)
+            $out.diagnostics['fakeKeyCalls'] = [int]$script:AguiaFakeState.keyCalls
+            $out.diagnostics['fakeInvokes'] = [int]$script:AguiaFakeState.invokes
+            $out.diagnostics['fakeClickFocusCalls'] = [int]$script:AguiaFakeState.clickFocusCalls
+            $out.diagnostics['fakeFreshScans'] = [int]$script:AguiaFakeState.freshScans
+        }
+        return $out
     } catch {
         $info = Get-AguiaErrorInfo -ErrorRecord $_
         $errorResult = [ordered]@{

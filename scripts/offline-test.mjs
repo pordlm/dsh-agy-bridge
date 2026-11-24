@@ -1875,7 +1875,93 @@ async function main() {
     }
   }
 
-  // 31. Output schema verification across all 6 registered tools.
+  // 31. antigravity_reset_session resets only caller's own session, rejects when busy, and writes tombstone for next-turn rebaseline.
+  {
+    const { PROVIDER_ID } = await import('../lib/model-catalog.js')
+    const harness = new Harness('r1-reset-session', { mountLlm: true })
+    try {
+      const adapter = harness.adapters.get(PROVIDER_ID)
+      const models = await adapter.listModels()
+      const model = models[0]?.id
+      const agent = harness.agent('agent-reset')
+      agent.session = { id: 'sess-reset-1' }
+      harness.agents.set('sess-reset-1', agent)
+      const turn1Chunks = []
+      for await (const chunk of adapter.stream({
+        sessionId: 'sess-reset-1',
+        model,
+        messages: [{ role: 'user', id: 'u1', content: [{ type: 'text', text: 'hello' }] }],
+      })) {
+        turn1Chunks.push(chunk)
+      }
+      check('reset-session turn 1 succeeded', turn1Chunks.at(-1)?.reason?.kind === 'stop')
+      check('reset-session created binding', adapter.nativeSessions['sess-reset-1']?.rebaseline !== true)
+
+      // Busy check: activeSessions blocks reset with AGY_ACP_RESET_BUSY (constraint-equivalent to AGY_ACP_ACCEPTANCE_UNKNOWN).
+      adapter.activeSessions.add('sess-reset-1')
+      let busyErr = null
+      try {
+        await harness.call('antigravity_reset_session', {}, 'agent-reset')
+      } catch (error) {
+        busyErr = error
+      } finally {
+        adapter.activeSessions.delete('sess-reset-1')
+      }
+      check('reset-session rejects busy session with AGY_ACP_RESET_BUSY and no-resend guard', busyErr?.code === 'AGY_ACP_RESET_BUSY' && /禁止重发同一 prompt/.test(busyErr?.message ?? ''), busyErr?.code)
+
+      // Idle reset: succeeds, writes tombstone, closes liveSessions.
+      const resetRes = await harness.call('antigravity_reset_session', {}, 'agent-reset')
+      check('reset-session returns sessionId', resetRes.sessionId === 'sess-reset-1', resetRes.sessionId)
+      check('reset-session reports hadBinding=true', resetRes.hadBinding === true)
+      check('reset-session returns nextTurnBehavior', resetRes.nextTurnBehavior === 'rebaseline_new_session', resetRes.nextTurnBehavior)
+      const tombstone = adapter.nativeSessions['sess-reset-1']
+      check('reset-session writes tombstone', tombstone?.rebaseline === true && tombstone?.reasonCode === 'manual_reset' && typeof tombstone?.resetAt === 'number' && tombstone?.lastCommittedUserId === 'u1' && tombstone?.consecutiveRebaselines === 0)
+      check('reset-session clears liveSessions', adapter.liveSessions.has('sess-reset-1') === false)
+
+      // Next turn with multi-turn history after reset rebaselines instead of AGY_ACP_BINDING_UNKNOWN.
+      const turn2Chunks = []
+      for await (const chunk of adapter.stream({
+        sessionId: 'sess-reset-1',
+        model,
+        messages: [
+          { role: 'user', id: 'u1', content: [{ type: 'text', text: 'hello' }] },
+          { role: 'assistant', id: 'a1', content: [{ type: 'text', text: 'MOCK-REPLY: hello' }] },
+          { role: 'user', id: 'u2', content: [{ type: 'text', text: 'after reset' }] },
+        ],
+      })) {
+        turn2Chunks.push(chunk)
+      }
+      check('post-reset multi-turn rebaselines cleanly', turn2Chunks.at(-1)?.reason?.kind === 'stop')
+
+      // Unbound session without tombstone still throws AGY_ACP_BINDING_UNKNOWN.
+      harness.agents.set('sess-unbound', { id: 'agent-unbound', session: { id: 'sess-unbound' } })
+      let unboundErr = null
+      try {
+        for await (const _chunk of adapter.stream({
+          sessionId: 'sess-unbound',
+          model,
+          messages: [
+            { role: 'user', id: 'u1', content: [{ type: 'text', text: 'hello' }] },
+            { role: 'assistant', id: 'a1', content: [{ type: 'text', text: 'prev' }] },
+            { role: 'user', id: 'u2', content: [{ type: 'text', text: 'hi' }] },
+          ],
+        })) { /* drain */ }
+      } catch (error) {
+        unboundErr = error
+      }
+      check('unbound multi-turn without tombstone still throws AGY_ACP_BINDING_UNKNOWN', unboundErr?.code === 'AGY_ACP_BINDING_UNKNOWN', unboundErr?.code)
+    } finally {
+      await harness.close()
+    }
+  }
+
+  // 32. Fault-tolerant model catalog, read-only refresh endpoint, and panel refresh tests.
+  {
+    const { runCatalogTests } = await import('./catalog-test.mjs')
+    await runCatalogTests({ check })
+  }
+
+  // 33. Output schema verification across all registered tools.
   {
     const { runOutputCheck } = await import('./output-check.mjs')
     const result = await runOutputCheck({ quiet: true })

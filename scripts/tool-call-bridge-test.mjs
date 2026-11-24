@@ -1263,15 +1263,16 @@ test('T38: interruption (cancelled stopReason, abort signal, generator early exi
     }),
     (err) => err instanceof AgyAcpError && err.code === 'AGY_ACP_SYSTEM_CHANGED',
   )
-  await assert.rejects(
-    () => collect(adapter1, {
-      sessionId: 's-t38a',
-      model: 'gpt-5',
-      reasoningEffort: 'medium',
-      messages: [user('u1', 'u-1'), assistant('wrong-assistant', 'a-1'), user('u3', 'u-3')],
-    }),
-    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_HISTORY && err.message === '上轮 assistant 与 ACP 已确认回复不一致；没有派发 prompt。',
-  )
+  // Edited assistant while dirty with a new trailing user auto-rebaselines with HISTORY_HASH_MISMATCH and clears dirty:
+  const rebaselinedDirty = await collect(adapter1, {
+    sessionId: 's-t38a',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), assistant('wrong-assistant', 'a-1'), user('u3', 'u-3')],
+  })
+  assert.equal(rebaselinedDirty.at(-1)?.reason?.kind, 'stop')
+  assert.equal(adapter1.getNativeActivity('s-t38a').rebaselines.at(-1)?.reason, ERROR_CODES.HISTORY_HASH_MISMATCH)
+  assert.equal(adapter1.nativeSessions['s-t38a'].dirty, false)
   await assert.rejects(
     () => collect(adapter1, {
       sessionId: 's-t38a',
@@ -1281,16 +1282,6 @@ test('T38: interruption (cancelled stopReason, abort signal, generator early exi
     }),
     (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_HISTORY && err.message === '历史必须以新增用户输入结束；没有派发 prompt。',
   )
-
-  // Dirty recovery succeeds and clears dirty:
-  const recovered = await collect(adapter1, {
-    sessionId: 's-t38a',
-    model: 'gpt-5',
-    reasoningEffort: 'medium',
-    messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), user('u2', 'u-2'), assistant('partial', 'a-2'), user('u3', 'u-3')],
-  })
-  assert.equal(recovered.at(-1)?.reason?.kind, 'stop')
-  assert.equal(adapter1.nativeSessions['s-t38a'].dirty, false)
 
   // 2) AbortSignal during prompt sets dirty=true and clears inFlight
   class AbortTransport extends StubTransport {
@@ -1349,9 +1340,44 @@ test('T38: interruption (cancelled stopReason, abort signal, generator early exi
   assert.equal(adapter3.nativeSessions['s-t38c'].dirty, false)
 })
 
-test('T39: tampered prefix re-baselines without AGY_ACP_UNSUPPORTED_HISTORY (intentional Contract/Acceptance semantics)', async () => {
-  // Intentional semantic change per Contract/Acceptance: shape-only check no longer compares
-  // committed prefix items role/hash/id one-by-one; modified prefix re-baselines cleanly.
+test('T38d: dirty recovery after normal stopReason clears dirty=false and reuses live transport', async () => {
+  const transports = []
+  const adapter = new AgyAcpAdapter({
+    transport: () => {
+      const t = new StubTransport(['r1', 'r2', 'r3'])
+      transports.push(t)
+      return t
+    },
+  })
+  await collect(adapter, { sessionId: 's-t38d', model: 'gpt-5', reasoningEffort: 'medium', messages: [user('u1', 'u-1')] })
+  // Simulate dirty state from an interrupted turn while keeping assistantHash matching 'r1'
+  adapter.nativeSessions['s-t38d'].dirty = true
+  const recovered = await collect(adapter, {
+    sessionId: 's-t38d',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), user('u2', 'u-2')],
+  })
+  assert.equal(recovered.at(-1)?.reason?.kind, 'stop')
+  assert.equal(adapter.nativeSessions['s-t38d'].dirty, false)
+  assert.equal(adapter.liveSessions.has('s-t38d'), true, 'live transport must be cached after clean recovery')
+  assert.equal(adapter.liveSessions.get('s-t38d').transport.closed, false)
+  // Subsequent clean turn reuses the recovered live transport without spawning a 3rd transport
+  const countBefore = transports.length
+  const nextTurn = await collect(adapter, {
+    sessionId: 's-t38d',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), user('u2', 'u-2'), assistant('r1', 'a-2'), user('u3', 'u-3')],
+  })
+  assert.equal(nextTurn.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transports.length, countBefore, 'live transport must be reused after dirty recovery')
+})
+
+test('T39: tampered prefix triggers HISTORY_SHAPE atomic re-baseline with zero-tolerance role+id check', async () => {
+  // Current semantics: prefix items are checked with zero-tolerance on role+id and suffix[0]
+  // must be assistant; a tampered prefix with a valid trailing user segment triggers HISTORY_SHAPE
+  // atomic re-baseline (sending only the trailing user segment).
   const transport = new StubTransport(['r1', 'r2'])
   const adapter = new AgyAcpAdapter({ transport: () => transport })
   await collect(adapter, {
@@ -1407,8 +1433,8 @@ test('T40: non-prefix committed history with valid suffix shape re-baselines wit
   assert.equal(adapter.nativeSessions['s-t40'].history.length, 5)
 })
 
-test('T41: fail-closed when suffix contains two assistants', async () => {
-  const transport = new StubTransport(['r1'])
+test('T41: auto-rebaselines with HISTORY_MULTI_ASSISTANT when suffix contains two assistants and trailing user', async () => {
+  const transport = new StubTransport(['r1', 'r2'])
   const adapter = new AgyAcpAdapter({ transport: () => transport })
   await collect(adapter, {
     sessionId: 's-t41',
@@ -1416,23 +1442,20 @@ test('T41: fail-closed when suffix contains two assistants', async () => {
     reasoningEffort: 'medium',
     messages: [user('u1', 'u-1')],
   })
-  await assert.rejects(
-    () => collect(adapter, {
-      sessionId: 's-t41',
-      model: 'gpt-5',
-      reasoningEffort: 'medium',
-      messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), assistant('extra', 'a-2'), user('u2', 'u-2')],
-    }),
-    (err) =>
-      err instanceof AgyAcpError &&
-      err.code === ERROR_CODES.UNSUPPORTED_HISTORY &&
-      err.message === '历史前缀不匹配、重复输入或有未提交轮次；不重放，没有派发 prompt。',
-  )
-  assert.equal(transport.prompts.length, 1)
+  const res = await collect(adapter, {
+    sessionId: 's-t41',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), assistant('extra', 'a-2'), user('u2', 'u-2')],
+  })
+  assert.equal(res.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transport.prompts.length, 2)
+  assert.equal(transport.prompts[1].prompt[0].text, 'u2')
+  assert.equal(adapter.getNativeActivity('s-t41').rebaselines.at(-1)?.reason, ERROR_CODES.HISTORY_MULTI_ASSISTANT)
 })
 
-test('T42: fail-closed when suffix contains no assistant', async () => {
-  const transport = new StubTransport(['r1'])
+test('T42: auto-rebaselines with HISTORY_SHAPE when suffix contains no assistant and has trailing user', async () => {
+  const transport = new StubTransport(['r1', 'r2'])
   const adapter = new AgyAcpAdapter({ transport: () => transport })
   await collect(adapter, {
     sessionId: 's-t42',
@@ -1440,23 +1463,20 @@ test('T42: fail-closed when suffix contains no assistant', async () => {
     reasoningEffort: 'medium',
     messages: [user('u1', 'u-1')],
   })
-  await assert.rejects(
-    () => collect(adapter, {
-      sessionId: 's-t42',
-      model: 'gpt-5',
-      reasoningEffort: 'medium',
-      messages: [user('u1', 'u-1'), user('u2', 'u-2')],
-    }),
-    (err) =>
-      err instanceof AgyAcpError &&
-      err.code === ERROR_CODES.UNSUPPORTED_HISTORY &&
-      err.message === '历史前缀不匹配、重复输入或有未提交轮次；不重放，没有派发 prompt。',
-  )
-  assert.equal(transport.prompts.length, 1)
+  const res = await collect(adapter, {
+    sessionId: 's-t42',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), user('u2', 'u-2')],
+  })
+  assert.equal(res.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transport.prompts.length, 2)
+  assert.equal(transport.prompts[1].prompt[0].text, 'u1\n\nu2')
+  assert.equal(adapter.getNativeActivity('s-t42').rebaselines.at(-1)?.reason, ERROR_CODES.HISTORY_SHAPE)
 })
 
-test('T43: fail-closed when suffix contains tool entry on non-tool-reply turn', async () => {
-  const transport = new StubTransport(['r1'])
+test('T43: auto-rebaselines with HISTORY_TOOL_ORDER when suffix contains tool entry on non-tool-reply turn', async () => {
+  const transport = new StubTransport(['r1', 'r2'])
   const adapter = new AgyAcpAdapter({ acpToolBridge: true, transport: () => transport })
   await collect(adapter, {
     sessionId: 's-t43',
@@ -1465,20 +1485,17 @@ test('T43: fail-closed when suffix contains tool entry on non-tool-reply turn', 
     messages: [user('u1', 'u-1')],
     tools: [CLAIM_TOOL],
   })
-  await assert.rejects(
-    () => collect(adapter, {
-      sessionId: 's-t43',
-      model: 'gpt-5',
-      reasoningEffort: 'medium',
-      messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), toolResult('c1', 'out', false, 'tr-1'), user('u2', 'u-2')],
-      tools: [CLAIM_TOOL],
-    }),
-    (err) =>
-      err instanceof AgyAcpError &&
-      err.code === ERROR_CODES.UNSUPPORTED_HISTORY &&
-      err.message === '历史前缀不匹配、重复输入或有未提交轮次；不重放，没有派发 prompt。',
-  )
-  assert.equal(transport.prompts.length, 1)
+  const res = await collect(adapter, {
+    sessionId: 's-t43',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), toolResult('c1', 'out', false, 'tr-1'), user('u2', 'u-2')],
+    tools: [CLAIM_TOOL],
+  })
+  assert.equal(res.at(-1)?.reason?.kind, 'stop')
+  assert.equal(transport.prompts.length, 2)
+  assert.match(transport.prompts[1].prompt[0].text, /u2/)
+  assert.equal(adapter.getNativeActivity('s-t43').rebaselines.at(-1)?.reason, ERROR_CODES.HISTORY_TOOL_ORDER)
 })
 
 test('T44: fail-closed when trailing message is not user', async () => {
@@ -1505,7 +1522,7 @@ test('T44: fail-closed when trailing message is not user', async () => {
   assert.equal(transport.prompts.length, 1)
 })
 
-test('T45: clean-state replay (length === committed.length) and shortened history (length < committed.length) throw AGY_ACP_UNSUPPORTED_HISTORY with zero prompt', async () => {
+test('T45: clean-state replay (length === committed.length) and shortened history (length < committed.length) throw AGY_ACP_HISTORY_REPLAYED with zero prompt', async () => {
   const transport = new StubTransport(['same-reply', 'same-reply'])
   const adapter = new AgyAcpAdapter({ transport: () => transport })
   await collect(adapter, {
@@ -1532,7 +1549,7 @@ test('T45: clean-state replay (length === committed.length) and shortened histor
       reasoningEffort: 'medium',
       messages: turn2Msgs,
     }),
-    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_HISTORY,
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.HISTORY_REPLAYED && /committed=3/.test(err.message),
   )
   assert.equal(transport.prompts.length, beforeCount, 'exact replay must not dispatch prompt')
 
@@ -1543,7 +1560,7 @@ test('T45: clean-state replay (length === committed.length) and shortened histor
       reasoningEffort: 'medium',
       messages: [user('first', 'u-1')],
     }),
-    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.UNSUPPORTED_HISTORY,
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.HISTORY_REPLAYED && /committed=3/.test(err.message),
   )
   assert.equal(transport.prompts.length, beforeCount, 'shortened history in clean state must not dispatch prompt')
 })
@@ -1897,10 +1914,153 @@ test('T57: system message containing reasoning block throws ERROR_CODES.UNSUPPOR
   assert.equal(transport.prompts.length, before)
 })
 
+test('T58: HISTORY_REPLAYED rejects when trailing user id already appeared in committed even if history grew', async () => {
+  const transport = new StubTransport(['r1'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  await collect(adapter, {
+    sessionId: 's-t58',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1')],
+  })
+  await assert.rejects(
+    () => collect(adapter, {
+      sessionId: 's-t58',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), user('u1 again', 'u-1')],
+    }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.HISTORY_REPLAYED,
+  )
+  assert.equal(transport.prompts.length, 1)
+})
+
+test('T59: prefix role/id mismatch triggers atomic rebaseline with diagnostics and nativeActivity', async () => {
+  const events = []
+  let seq = 0
+  class MultiSessionStub extends StubTransport {
+    async request(method, params, opts) {
+      if (method === 'session/new') {
+        seq += 1
+        const res = await super.request(method, params, opts)
+        return { ...res, sessionId: `acp-sess-${seq}` }
+      }
+      return super.request(method, params, opts)
+    }
+  }
+  const transport = new MultiSessionStub(['r1', 'r2'])
+  const adapter = new AgyAcpAdapter({
+    transport: () => transport,
+    onToolEvents: (ev) => events.push(ev),
+  })
+  await collect(adapter, {
+    sessionId: 's-t59',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1')],
+  })
+  const firstSessionId = adapter.nativeSessions['s-t59'].acpSessionId
+  adapter.bridgeCalls.set('stale-call', { name: 'claim_task', arguments: '{}' })
+  const res = await collect(adapter, {
+    sessionId: 's-t59',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1-changed', 'u-1-new'), assistant('r1', 'a-1'), user('u2', 'u-2')],
+  })
+  assert.equal(res.at(-1)?.reason?.kind, 'stop')
+  assert.equal(adapter.bridgeCalls.has('stale-call'), false, 'bridgeCalls must be cleared on atomic rebaseline')
+  const secondSessionId = adapter.nativeSessions['s-t59'].acpSessionId
+  assert.notEqual(secondSessionId, firstSessionId, 'must not reuse old acpSessionId')
+  const act = adapter.getNativeActivity('s-t59')
+  assert.equal(act.rebaselines.length, 1)
+  assert.equal(act.rebaselines[0].reason, ERROR_CODES.HISTORY_SHAPE)
+  assert.equal(act.rebaselines[0].oldAcpSessionId, firstSessionId)
+  assert.equal(act.rebaselines[0].newAcpSessionId, secondSessionId)
+  assert.equal(act.rebaselines[0].promptChars, 2)
+  assert.equal(adapter.getDiagnostics('s-t59').length, 1)
+  assert.equal(events.at(-1)?.diagnostics?.rebaseline?.reason, ERROR_CODES.HISTORY_SHAPE)
+})
+
+test('T60: sawTrailingTool turn with mismatch or tombstone rejects with HISTORY_TOOL_ORDER (never EMPTY_PROMPT)', async () => {
+  const transport = new StubTransport(['```tool_call\n{"name":"claim_task","arguments":{"id":"1"}}\n```'])
+  const adapter = new AgyAcpAdapter({ acpToolBridge: true, transport: () => transport })
+  await collect(adapter, {
+    sessionId: 's-t60',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1')],
+    tools: [CLAIM_TOOL],
+  })
+  adapter.resetSession('s-t60')
+  await assert.rejects(
+    () => collect(adapter, {
+      sessionId: 's-t60',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [user('u1', 'u-1'), assistant('call', 'a-1'), toolResult('c1', 'ok', false, 'tr-1')],
+      tools: [CLAIM_TOOL],
+    }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.HISTORY_TOOL_ORDER,
+  )
+  assert.equal(transport.prompts.length, 1, 'must not stuff toolResultText into session/new')
+})
+
+test('T61: TOOL_BRIDGE_CORRECTION turn does not commit confirmed reply and does not set dirty=true', async () => {
+  const transport = new StubTransport(['bad tool_call inline mention', 'clean reply'])
+  const adapter = new AgyAcpAdapter({ acpToolBridge: true, transport: () => transport })
+  await collect(adapter, {
+    sessionId: 's-t61',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: [user('u1', 'u-1')],
+    tools: [CLAIM_TOOL],
+  })
+  const ledger = adapter.nativeSessions['s-t61']
+  assert.equal(ledger.dirty, false, 'correction turn must not set dirty=true')
+  assert.equal(ledger.history.length, 0, 'correction turn must not commit history as confirmed reply')
+  assert.equal(ledger.assistantHash, undefined, 'correction turn must not commit assistantHash')
+  assert.equal(transport.closed, false, 'correction turn must not kill transport')
+})
+
+test('T62: consecutive rebaselines exceeding MAX_CONSECUTIVE_REBASELINES reject with REBASELINE_LIMIT_EXCEEDED (zero prompt)', async () => {
+  const transport = new StubTransport(['r1', 'r2', 'r3', 'r4', 'r5'])
+  const adapter = new AgyAcpAdapter({ transport: () => transport })
+  const msgs = [user('u1', 'u-1')]
+  await collect(adapter, {
+    sessionId: 's-t62',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    messages: msgs,
+  })
+  // Trigger 3 consecutive rebaselines via hash mismatch (MAX_CONSECUTIVE_REBASELINES = 3):
+  for (let i = 1; i <= 3; i += 1) {
+    msgs.push(assistant('wrong', `a-${i}`), user(`u${i + 1}`, `u-${i + 1}`))
+    await collect(adapter, {
+      sessionId: 's-t62',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [...msgs],
+    })
+  }
+  assert.equal(transport.prompts.length, 4)
+  assert.equal(adapter.nativeSessions['s-t62'].consecutiveRebaselines, 3)
+  msgs.push(assistant('wrong', 'a-4'), user('u5', 'u-5'))
+  await assert.rejects(
+    () => collect(adapter, {
+      sessionId: 's-t62',
+      model: 'gpt-5',
+      reasoningEffort: 'medium',
+      messages: [...msgs],
+    }),
+    (err) => err instanceof AgyAcpError && err.code === ERROR_CODES.REBASELINE_LIMIT_EXCEEDED,
+  )
+  assert.equal(transport.prompts.length, 4, 'limit exceeded must not dispatch prompt')
+})
+
 let summaryPrinted = false
 process.on('exit', (code) => {
   if (!summaryPrinted && code === 0) {
     summaryPrinted = true
-    console.log('tool-call-bridge-test: 57/57 passed')
+    console.log('tool-call-bridge-test: 63/63 passed')
   }
 })

@@ -79,10 +79,15 @@ if (!process.argv.includes('--live')) {
     assert.deepEqual(prompts(t).map((r) => r.params.prompt[0].text), ['first', 'second']); assert.equal(t.state['session-1'].effort, 'high')
     const ledger = JSON.parse(readFileSync(file)); assert.equal(ledger.sessions['dsh-1'].inFlight, null); assert.equal(ledger.sessions['dsh-1'].history.at(-1).id, 'u2')
     const beforeReplayPrompts = prompts(t).length
-    await assert.rejects(() => collect(a, request(next)), { code: 'AGY_ACP_UNSUPPORTED_HISTORY' })
+    await assert.rejects(() => collect(a, request(next)), { code: 'AGY_ACP_HISTORY_REPLAYED' })
     assert.equal(prompts(t).length, beforeReplayPrompts, 'replay of committed history must not dispatch a prompt')
-    await assert.rejects(() => collect(a, request([...next, assistant('a2', 'edited'), user('u3', 'third')])), { code: 'AGY_ACP_UNSUPPORTED_HISTORY' })
-    assert.equal(prompts(t).length, beforeReplayPrompts, 'edited assistant must not dispatch a prompt')
+    const rebaselined = await collect(a, request([...next, assistant('a2', 'edited'), user('u3', 'third')]))
+    assert.equal(rebaselined.at(-1).reason.kind, 'stop')
+    assert.equal(prompts(t).length, beforeReplayPrompts + 1, 'edited assistant with new trailing user must auto-rebaseline')
+    assert.equal(prompts(t).at(-1).params.prompt[0].text, 'third', 'rebaseline must only send trailing user')
+    assert.equal(a.getNativeActivity('dsh-1').rebaselines.length, 1)
+    assert.equal(a.getNativeActivity('dsh-1').rebaselines[0].reason, 'AGY_ACP_HISTORY_HASH_MISMATCH')
+    assert.equal(a.getDiagnostics('dsh-1').length, 1)
     a.dispose()
   })
   test('restart capability gates resume/load; load replay excluded; unknown restore never new/prompt', async () => {
@@ -381,6 +386,36 @@ if (!process.argv.includes('--live')) {
     assert.equal(prompts(t).length, 2)
     const ledger = JSON.parse(readFileSync(file)).sessions['dsh-1']
     assert.equal(ledger.inFlight, null); assert.equal(ledger.lastResult.stopReason, 'end_turn')
+    adapter.dispose()
+  })
+  test('concurrent stream on the same sessionId rejects with AGY_ACP_SESSION_BUSY', async () => {
+    let releasePrompt
+    let enteredPrompt
+    const promptEntered = new Promise((resolve) => { enteredPrompt = resolve })
+    class BlockingTransport extends Transport {
+      async request(method, params, options) {
+        if (method === 'session/prompt') {
+          this.requests.push({ method, params })
+          enteredPrompt()
+          await new Promise((resolve) => { releasePrompt = resolve })
+          this.emit(params.sessionId, 'first answer')
+          options?.onResponse?.()
+          return { stopReason: 'end_turn' }
+        }
+        return super.request(method, params, options)
+      }
+    }
+    const t = new BlockingTransport()
+    const adapter = new AgyAcpAdapter({ cwd: temp, transport: () => t })
+    const firstTurn = collect(adapter, request([user('u1', 'first')]))
+    await promptEntered
+    await assert.rejects(
+      () => collect(adapter, request([user('u2', 'second')])),
+      (err) => err.code === 'AGY_ACP_SESSION_BUSY' && /同一 DSH 会话已有原生请求/.test(err.message),
+    )
+    releasePrompt()
+    const firstChunks = await firstTurn
+    assert.equal(firstChunks.at(-1).reason.kind, 'stop')
     adapter.dispose()
   })
   test.after(() => rmSync(temp, { recursive: true, force: true }))

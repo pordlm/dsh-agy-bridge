@@ -60,6 +60,9 @@ export function createUnavailableBridge(reason = 'remote_unavailable') {
     nativeActivity: reject,
     authStatus: reject,
     login: reject,
+    refreshModels: reject,
+    desktopStatus: reject,
+    desktopPin: reject,
   };
 }
 
@@ -186,6 +189,9 @@ export function createRemoteBridge(source, namespace = 'antigravityBridge') {
     nativeActivity: (sessionId, options) => invoke('nativeActivity', [{ sessionId }], options),
     authStatus: (options) => invoke('authStatus', [], options),
     login: (options) => invoke('login', [], options),
+    refreshModels: (options) => invoke('refreshModels', [], options),
+    desktopStatus: (payload, options) => invoke('desktopStatus', [payload || {}], options),
+    desktopPin: (payload, options) => invoke('desktopPin', [payload || {}], options),
   };
 }
 
@@ -270,6 +276,17 @@ export function createPanelController(options = {}) {
     cliVersion: '',
     cliAuthMessage: null,
     cliAuthFlow: null,
+    refreshingModels: false,
+    modelsRefreshMeta: null,
+    modelsLastSuccessAt: null,
+    modelsStale: false,
+    modelsRefreshError: null,
+    pinningDesktop: false,
+    desktopPinTarget: null,
+    desktopPinnedAt: '',
+    desktopCandidates: [],
+    desktopSelectedHwnd: '',
+    desktopError: null,
   };
 
   function snapshot() {
@@ -582,7 +599,15 @@ export function createPanelController(options = {}) {
       const capabilities = result && result.capabilities ? result.capabilities : null;
       const transports = capabilities && Array.isArray(capabilities.transports) ? capabilities.transports : [];
       const transport = transports.includes(state.transport) ? state.transport : transports[0] || 'acp';
-      patch({ capabilities, capabilitiesError: null, transport, bridgeAvailable: true });
+      const hasModels = capabilities && Array.isArray(capabilities.models) && capabilities.models.length > 0;
+      patch({
+        capabilities,
+        capabilitiesError: null,
+        transport,
+        bridgeAvailable: true,
+        desktopPinTarget: (capabilities && capabilities.target) || null,
+        ...(hasModels ? { modelsLastSuccessAt: state.modelsLastSuccessAt ?? now(), modelsStale: false } : {}),
+      });
       if (!state.jobId && session) {
         void fetchNativeActivity(generation, session);
         scheduleNativePoll();
@@ -627,6 +652,21 @@ export function createPanelController(options = {}) {
       patch({ bridgeAvailable: false, error: 'remote_unavailable' });
       return Promise.resolve({ ok: false, code: 'remote_unavailable' });
     }
+    if (state.transport === 'desktop') {
+      const desktopEnabled = Boolean(state.capabilities && state.capabilities.desktop === true);
+      const desktopTarget = state.desktopPinTarget || (state.capabilities && state.capabilities.target) || null;
+      if (!desktopEnabled) {
+        patch({ error: 'desktop_disabled', desktopError: { code: 'desktop_disabled', message: 'desktop_disabled', driftField: '' } });
+        return Promise.resolve({ ok: false, code: 'desktop_disabled' });
+      }
+      if (!desktopTarget) {
+        patch({
+          error: 'desktop_target_not_configured',
+          desktopError: { code: 'desktop_target_not_configured', message: 'desktop_target_not_configured', driftField: '' },
+        });
+        return Promise.resolve({ ok: false, code: 'desktop_target_not_configured' });
+      }
+    }
 
     // The intent id survives an ambiguous acceptance: pressing Dispatch again
     // observes the same Host job instead of producing a second prompt. A new
@@ -637,6 +677,7 @@ export function createPanelController(options = {}) {
     // Once an intent exists its request snapshot is immutable: retrying the
     // same intent (including after a lost acknowledgement) must not turn edited
     // local fields into a different request. Only newIntent() starts over.
+    const isDesktop = state.transport === 'desktop';
     const payload =
       state.intentId && state.intentRequest
         ? state.intentRequest
@@ -644,10 +685,10 @@ export function createPanelController(options = {}) {
             clientRequestId: requestId,
             message: state.message,
             transport: state.transport,
-            model: state.model || null,
-            effort: state.effort || null,
+            model: isDesktop ? null : state.model || null,
+            effort: isDesktop ? null : state.effort || null,
             pathRefs: [...state.pathRefs],
-            attachments: state.files.map((entry) => entry.receiptId),
+            attachments: isDesktop ? [] : state.files.map((entry) => entry.receiptId),
           });
     patch({
       busy: true,
@@ -675,6 +716,7 @@ export function createPanelController(options = {}) {
         if (!result || result.ok !== true) {
           const code = (result && result.code) || 'not_sent';
           const notSent = Boolean(result && result.status === 'not_sent');
+          const isDesktopErr = typeof code === 'string' && code.startsWith('desktop_');
           patch({
             busy: false,
             phase: notSent ? 'not_sent' : 'unknown',
@@ -682,6 +724,15 @@ export function createPanelController(options = {}) {
             intentRequest: notSent ? null : payload,
             jobId: (result && result.jobId) || null,
             error: code,
+            ...(isDesktopErr
+              ? {
+                  desktopError: {
+                    code,
+                    message: (result && result.message) || code,
+                    driftField: (result && result.detail && result.detail.driftField) || '',
+                  },
+                }
+              : {}),
           });
           return { ok: false, code, jobId: (result && result.jobId) || null };
         }
@@ -889,10 +940,30 @@ export function createPanelController(options = {}) {
   function setTransport(transport) {
     const transports = state.capabilities && Array.isArray(state.capabilities.transports) ? state.capabilities.transports : ['acp'];
     if (!transports.includes(transport)) {
-      patch({ error: 'unsupported_capability', notice: 'transport' });
+      const code = transport === 'desktop' ? 'desktop_disabled' : 'unsupported_capability';
+      patch({
+        error: code,
+        notice: 'transport',
+        ...(transport === 'desktop' ? { desktopError: { code: 'desktop_disabled', message: 'desktop_disabled', driftField: '' } } : {}),
+      });
       return false;
     }
-    patch({ transport });
+    const desktopTarget = state.desktopPinTarget || (state.capabilities && state.capabilities.target) || null;
+    if (transport === 'desktop' && !desktopTarget) {
+      patch({
+        transport,
+        desktopError: { code: 'desktop_target_not_configured', message: 'desktop_target_not_configured', driftField: '' },
+      });
+      return true;
+    }
+    patch({
+      transport,
+      ...(transport === 'acp' &&
+      state.desktopError &&
+      (state.desktopError.code === 'desktop_disabled' || state.desktopError.code === 'desktop_target_not_configured')
+        ? { desktopError: null }
+        : {}),
+    });
     return true;
   }
 
@@ -1095,6 +1166,121 @@ export function createPanelController(options = {}) {
     }
   }
 
+  async function refreshModels() {
+    if (disposed) return { ok: false, code: 'disposed' };
+    if (!boundSession) return { ok: false, code: 'session_unknown' };
+    if (!bridgeUp() || typeof bridge.refreshModels !== 'function') {
+      const err = { code: 'remote_unavailable', message: 'remote_unavailable' };
+      patch({ modelsRefreshError: err, modelsStale: true });
+      return { ok: false, ...err };
+    }
+    if (state.refreshingModels) return { ok: false, code: 'busy' };
+    const generation = sessionGeneration;
+    patch({ refreshingModels: true, modelsRefreshError: null });
+    try {
+      const result = await bridge.refreshModels({ session: boundSession });
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      if (!result || result.ok === false) {
+        const err = {
+          code: (result && typeof result.code === 'string' && result.code) || 'catalog_refresh_failed',
+          message: (result && typeof result.message === 'string' && result.message) || 'catalog_refresh_failed',
+        };
+        patch({
+          refreshingModels: false,
+          modelsRefreshError: err,
+          modelsStale: true,
+        });
+        return { ok: false, ...err };
+      }
+      const nextModels = Array.isArray(result.models)
+        ? result.models.map((item) => (typeof item === 'string' ? item : item && item.id)).filter(Boolean)
+        : [];
+      const degraded = Array.isArray(result.degraded) ? result.degraded : [];
+      const meta = {
+        discoveredAt: result.discoveredAt || '',
+        elapsedMs: Number.isFinite(result.elapsedMs) ? result.elapsedMs : 0,
+        degraded,
+        count: nextModels.length,
+      };
+      patch({
+        refreshingModels: false,
+        modelsRefreshMeta: meta,
+        modelsLastSuccessAt: now(),
+        modelsStale: false,
+        modelsRefreshError: null,
+        capabilities: { ...(state.capabilities || {}), models: nextModels },
+      });
+      return { ok: true, models: nextModels, ...meta };
+    } catch (error) {
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      const err = {
+        code: readErrorCode(error),
+        message: String((error && error.message) || error || 'request_failed'),
+      };
+      patch({
+        refreshingModels: false,
+        modelsRefreshError: err,
+        modelsStale: true,
+      });
+      return { ok: false, ...err };
+    }
+  }
+
+  function setDesktopSelectedHwnd(hwnd) {
+    patch({ desktopSelectedHwnd: hwnd == null ? '' : String(hwnd) });
+  }
+
+  async function pinDesktopWindow({ hwnd } = {}) {
+    if (disposed) return { ok: false, code: 'disposed' };
+    if (!boundSession) return { ok: false, code: 'session_unknown' };
+    if (!bridgeUp() || typeof bridge.desktopPin !== 'function') {
+      const err = { code: 'remote_unavailable', message: 'remote_unavailable', driftField: '' };
+      patch({ desktopError: err });
+      return { ok: false, ...err };
+    }
+    if (state.pinningDesktop) return { ok: false, code: 'busy' };
+    const generation = sessionGeneration;
+    patch({ pinningDesktop: true, desktopError: null });
+    try {
+      const result = await bridge.desktopPin(
+        { action: 'pin', ...(hwnd !== undefined && hwnd !== '' ? { hwnd } : {}) },
+        { session: boundSession },
+      );
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      if (result && result.ok === true && result.target) {
+        patch({
+          pinningDesktop: false,
+          desktopPinTarget: result.target,
+          desktopPinnedAt: new Date(now()).toISOString(),
+          desktopCandidates: [],
+          desktopSelectedHwnd: '',
+          desktopError: null,
+          capabilities: { ...(state.capabilities || {}), target: result.target },
+        });
+        return result;
+      }
+      const code = (result && typeof result.code === 'string' && result.code) || 'desktop_target_unverified';
+      const candidates = Array.isArray(result && result.candidates) ? result.candidates : [];
+      patch({
+        pinningDesktop: false,
+        desktopCandidates: candidates,
+        desktopSelectedHwnd: candidates[0] && candidates[0].hwnd != null ? String(candidates[0].hwnd) : '',
+        desktopError: {
+          code,
+          message: (result && result.message) || code,
+          driftField: (result && result.detail && result.detail.driftField) || '',
+        },
+      });
+      return { ok: false, code, candidates };
+    } catch (error) {
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      const code = readErrorCode(error) || 'desktop_target_unverified';
+      const err = { code, message: String((error && error.message) || error || code), driftField: '' };
+      patch({ pinningDesktop: false, desktopError: err });
+      return { ok: false, ...err };
+    }
+  }
+
   function subscribe(listener) {
     listeners.add(listener);
     return () => listeners.delete(listener);
@@ -1118,6 +1304,9 @@ export function createPanelController(options = {}) {
     readReply,
     refreshCapabilities,
     refreshAuthStatus,
+    refreshModels,
+    pinDesktopWindow,
+    setDesktopSelectedHwnd,
     loginCli,
     setSession,
     setCollapsed,
@@ -1307,24 +1496,26 @@ export function createPanelComponent({ React, translate = createTranslator(), br
 
   return function AntigravityBridgePanel(props) {
     const slotSessionId = (props && (props.sessionId || (props.session && props.session.id) || (props.conversation && props.conversation.id))) || null;
-    const controllerRef = useRef(null);
+    const injectedController = props && props.controller ? props.controller : null;
+    const controllerRef = useRef(injectedController);
     if (controllerRef.current === null) {
       controllerRef.current = createPanelController({
         bridge, sessionId: slotSessionId, uploader, getUploader: getUploader || undefined,
       });
     }
-    const controller = controllerRef.current;
-    const [state, setState] = useState(controller.getState());
+    const controller = injectedController || controllerRef.current;
+    const [state, setState] = useState(() => controller.getState());
     const pathInputRef = useRef(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
+      setState(controller.getState());
       const unsubscribe = controller.subscribe(setState);
       return () => {
         unsubscribe();
-        controller.dispose();
+        if (!injectedController) controller.dispose();
       };
-    }, [controller]);
+    }, [controller, injectedController]);
 
     useEffect(() => {
       // Switching the slot's conversation clears the panel's inputs (see
@@ -1336,12 +1527,14 @@ export function createPanelComponent({ React, translate = createTranslator(), br
 
     const capabilities = state.capabilities;
     const transports = capabilities && Array.isArray(capabilities.transports) ? capabilities.transports : ['acp'];
-    const desktopAvailable = transports.includes('desktop');
+    const desktopEnabled = Boolean(capabilities && capabilities.desktop === true) || transports.includes('desktop');
+    const desktopTarget = state.desktopPinTarget || (capabilities && capabilities.target) || null;
+    const isDesktop = state.transport === 'desktop';
     const models = capabilities && Array.isArray(capabilities.models) ? capabilities.models : null;
     const efforts = capabilities && Array.isArray(capabilities.efforts) ? capabilities.efforts : null;
     const pathRefsSupported = Boolean(capabilities && capabilities.attachments && capabilities.attachments.pathRefs);
     const uploadSupported = Boolean(
-      capabilities && capabilities.attachments && capabilities.attachments.uploadReceipt && (getUploader || uploader),
+      !isDesktop && capabilities && capabilities.attachments && capabilities.attachments.uploadReceipt && (getUploader || uploader),
     );
 
     const header = h(
@@ -1394,6 +1587,12 @@ export function createPanelComponent({ React, translate = createTranslator(), br
       banners.push(h('p', { key: 'xsession', className: 'antigravity-bridge__banner', role: 'alert' }, t('banner.crossSession')));
     }
 
+    const desktopOptionLabel = !desktopEnabled
+      ? t('transport.desktopDisabled')
+      : desktopTarget
+        ? t('transport.desktop')
+        : t('transport.desktopUnconfigured');
+
     const transportField = h(
       'label',
       { className: 'antigravity-bridge__field', key: 'transport' },
@@ -1406,7 +1605,7 @@ export function createPanelComponent({ React, translate = createTranslator(), br
           onChange: (event) => controller.setTransport(event.target.value),
         },
         h('option', { value: 'acp' }, t('transport.acp')),
-        h('option', { value: 'desktop', disabled: !desktopAvailable }, desktopAvailable ? t('transport.desktop') : t('transport.desktopUnavailable')),
+        h('option', { value: 'desktop', disabled: !desktopEnabled }, desktopOptionLabel),
       ),
     );
 
@@ -1414,29 +1613,157 @@ export function createPanelComponent({ React, translate = createTranslator(), br
       'label',
       { className: 'antigravity-bridge__field', key: 'model' },
       h('span', null, t('model.label')),
-      models && models.length > 0
+      isDesktop
         ? h(
             'select',
-            { value: state.model, disabled: state.busy, onChange: (event) => controller.setModel(event.target.value) },
-            h('option', { value: '' }, t('model.auto')),
-            models.map((value) => h('option', { key: value, value }, value)),
+            { value: '', disabled: true, 'data-testid': 'desktop-model-readonly' },
+            h('option', { value: '' }, t('model.desktopCurrent')),
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('model.unsupported')),
+        : models && models.length > 0
+          ? h(
+              'select',
+              { value: state.model, disabled: state.busy, onChange: (event) => controller.setModel(event.target.value) },
+              h('option', { value: '' }, t('model.auto')),
+              models.map((value) => h('option', { key: value, value }, value)),
+            )
+          : h('span', { className: 'antigravity-bridge__hint' }, t('model.unsupported')),
     );
+
+    const hasModelStatus = Boolean(
+      state.modelsRefreshMeta || state.modelsRefreshError || state.modelsStale,
+    );
+    const modelStatusRow = hasModelStatus
+      ? h(
+          'div',
+          { className: 'antigravity-bridge__model-status', 'data-testid': 'models-status-row' },
+          state.modelsRefreshMeta
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__hint', 'data-testid': 'models-refresh-meta' },
+                t('models.refreshed', { count: state.modelsRefreshMeta.count, ms: state.modelsRefreshMeta.elapsedMs }),
+              )
+            : null,
+          state.modelsRefreshMeta && state.modelsRefreshMeta.degraded && state.modelsRefreshMeta.degraded.length > 0
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__warning', 'data-testid': 'models-refresh-degraded' },
+                t('models.degraded', {
+                  items: state.modelsRefreshMeta.degraded.map((d) => `${d.modelId}(${d.reason})`).join(', '),
+                }),
+              )
+            : null,
+          state.modelsRefreshError || state.modelsStale
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__warning', 'data-testid': 'models-stale-hint' },
+                t('models.stale', {
+                  time: state.modelsLastSuccessAt ? new Date(state.modelsLastSuccessAt).toTimeString().slice(0, 8) : '--:--:--',
+                }),
+              )
+            : null,
+          state.modelsRefreshError
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__error', 'data-testid': 'models-refresh-error' },
+                t('models.refreshFailed', {
+                  code: state.modelsRefreshError.code,
+                  message: state.modelsRefreshError.message,
+                }),
+              )
+            : null,
+        )
+      : null;
 
     const effortField = h(
       'label',
       { className: 'antigravity-bridge__field', key: 'effort' },
       h('span', null, t('effort.label')),
-      efforts && efforts.length > 0
+      isDesktop
         ? h(
             'select',
-            { value: state.effort, disabled: state.busy, onChange: (event) => controller.setEffort(event.target.value) },
-            h('option', { value: '' }, t('effort.auto')),
-            efforts.map((value) => h('option', { key: value, value }, value)),
+            { value: '', disabled: true, 'data-testid': 'desktop-effort-readonly' },
+            h('option', { value: '' }, t('effort.desktopCurrent')),
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('effort.unsupported')),
+        : efforts && efforts.length > 0
+          ? h(
+              'select',
+              { value: state.effort, disabled: state.busy, onChange: (event) => controller.setEffort(event.target.value) },
+              h('option', { value: '' }, t('effort.auto')),
+              efforts.map((value) => h('option', { key: value, value }, value)),
+            )
+          : h('span', { className: 'antigravity-bridge__hint' }, t('effort.unsupported')),
     );
+
+    const formatDesktopError = (err) => {
+      if (!err || !err.code) return '';
+      const key = `desktop.error.${err.code}`;
+      const formatted = t(key, { code: err.code, field: err.driftField || 'target', message: err.message || err.code });
+      return formatted === key
+        ? t('desktop.error.generic', { code: err.code, message: err.message || err.code })
+        : formatted;
+    };
+
+    const hasDesktopRow = Boolean(desktopTarget || state.desktopError || (state.desktopCandidates && state.desktopCandidates.length > 0));
+    const desktopStatusRow = hasDesktopRow
+      ? h(
+          'div',
+          { className: 'antigravity-bridge__model-status', 'data-testid': 'desktop-status-row' },
+          desktopTarget
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__hint', 'data-testid': 'desktop-pinned-summary' },
+                t('desktop.pinnedSummary', {
+                  pid: desktopTarget.pid,
+                  hwnd: desktopTarget.hwnd,
+                  uri: desktopTarget.uri,
+                  time: state.desktopPinnedAt ? new Date(state.desktopPinnedAt).toTimeString().slice(0, 8) : '--:--:--',
+                }),
+              )
+            : null,
+          state.desktopCandidates && state.desktopCandidates.length > 0
+            ? h(
+                'div',
+                { className: 'antigravity-bridge__pathrow', 'data-testid': 'desktop-candidate-picker' },
+                h('span', { className: 'antigravity-bridge__hint' }, t('desktop.chooseCandidate')),
+                h(
+                  'select',
+                  {
+                    'data-testid': 'desktop-candidate-select',
+                    value: state.desktopSelectedHwnd || String(state.desktopCandidates[0].hwnd),
+                    onChange: (event) => controller.setDesktopSelectedHwnd(event.target.value),
+                  },
+                  state.desktopCandidates.map((c) =>
+                    h('option', { key: String(c.hwnd), value: String(c.hwnd) }, `pid ${c.pid} · hwnd ${c.hwnd} · ${c.redactedUri || ''}`),
+                  ),
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    'data-action': 'confirm-pin-desktop',
+                    disabled: state.pinningDesktop,
+                    onClick: () =>
+                      void controller.pinDesktopWindow({
+                        hwnd: state.desktopSelectedHwnd || (state.desktopCandidates[0] && state.desktopCandidates[0].hwnd),
+                      }),
+                  },
+                  t('desktop.confirmPin'),
+                ),
+              )
+            : null,
+          state.desktopError
+            ? h(
+                'span',
+                {
+                  className: 'antigravity-bridge__error',
+                  'data-testid': 'desktop-error',
+                  'data-error-code': state.desktopError.code,
+                },
+                formatDesktopError(state.desktopError),
+              )
+            : null,
+        )
+      : null;
 
     const attachmentField = h(
       'div',
@@ -1541,7 +1868,9 @@ export function createPanelComponent({ React, translate = createTranslator(), br
               ? h('span', { className: 'antigravity-bridge__hint', role: 'alert' }, t('attachments.uploadFailed'))
               : null,
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('attachments.fileUnsupported')),
+        : isDesktop
+          ? h('span', { className: 'antigravity-bridge__hint', 'data-testid': 'desktop-path-only-hint' }, t('attachments.desktopPathOnly'))
+          : h('span', { className: 'antigravity-bridge__hint' }, t('attachments.fileUnsupported')),
     );
 
     const authBar = h(
@@ -1627,6 +1956,8 @@ export function createPanelComponent({ React, translate = createTranslator(), br
         }),
       ),
       h('div', { className: 'antigravity-bridge__row' }, transportField, modelField, effortField),
+      modelStatusRow,
+      desktopStatusRow,
       attachmentField,
       h(
         'div',
@@ -1636,7 +1967,7 @@ export function createPanelComponent({ React, translate = createTranslator(), br
           {
             type: 'button',
             className: 'antigravity-bridge__primary',
-            disabled: state.busy || !state.sessionReady || !state.bridgeAvailable || state.message.trim() === '',
+            disabled: state.busy || !state.sessionReady || !state.bridgeAvailable || state.message.trim() === '' || (isDesktop && !desktopTarget),
             onClick: () => void controller.dispatch(),
           },
           state.busy ? t('state.pending') : t('actions.dispatch'),
@@ -2017,6 +2348,34 @@ export function createCliSectionComponent({ React, translate: t = createTranslat
         { className: 'antigravity-cli-status__actions' },
         h('button', { type: 'button', 'data-action': 'cli-status-refresh', onClick: () => void controller.refresh() }, t('cli.refresh')),
         h('button', { type: 'button', 'data-action': 'cli-login-terminal', disabled: state.installation === 'missing', onClick: () => void controller.login() }, t('cli.openLogin')),
+        props && typeof props.onRefreshModels === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                'data-action': 'refresh-models',
+                disabled: Boolean(props.refreshingModels) || !bridgeAvailable || props.canRefreshModels === false,
+                onClick: () => void props.onRefreshModels(),
+              },
+              props.refreshingModels ? t('models.refreshing') : t('models.refresh'),
+            )
+          : null,
+        props && typeof props.onPinDesktop === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                'data-action': 'pin-desktop',
+                disabled: Boolean(props.pinningDesktop) || !bridgeAvailable || props.canPinDesktop === false,
+                onClick: () => void props.onPinDesktop(),
+              },
+              props.pinningDesktop
+                ? t('desktop.pinning')
+                : props.desktopNeedsRepin
+                  ? t('desktop.repinWindow')
+                  : t('desktop.pinWindow'),
+            )
+          : null,
       ),
       flowHint,
       state.message
@@ -2082,9 +2441,23 @@ export function createSidebarPage({ React, translate: t, Panel, retainSession, b
         controller: cliControllerRef.current,
       });
     }
-    useEffect(() => () => {
-      if (!cliController && cliControllerRef.current) cliControllerRef.current.dispose();
-    }, []);
+    const panelControllerRef = useRef(null);
+    if (panelControllerRef.current === null) {
+      panelControllerRef.current = createPanelController({
+        bridge: bridge || createUnavailableBridge(),
+        sessionId: sessionId || null,
+      });
+    }
+    const panelController = panelControllerRef.current;
+    const [panelState, setPanelState] = useState(() => panelController.getState());
+    useEffect(() => {
+      const unsubPanel = panelController.subscribe(setPanelState);
+      return () => {
+        unsubPanel();
+        panelController.dispose();
+        if (!cliController && cliControllerRef.current) cliControllerRef.current.dispose();
+      };
+    }, [panelController]);
 
     useEffect(() => {
       if (!sessionId) return undefined;
@@ -2115,10 +2488,24 @@ export function createSidebarPage({ React, translate: t, Panel, retainSession, b
     };
     const selectedScope = sessionId && scope?.sessionId === sessionId ? scope : null;
     const waiting = (!ids.length && phase !== 'ready') || (sessionId && !selectedScope);
+    const bridgeUp = Boolean(cliController || (bridge && bridge.available !== false));
     return h('div', { className: 'antigravity-sidebar-page', style: pageStyle, 'data-antigravity-sidebar-page': '' },
       h('style', { 'data-antigravity-sidebar-style': 'true' }, SIDEBAR_STYLES),
       h('div', { className: 'antigravity-sidebar-page__content', style: contentStyle },
-        h(cliSectionRef.current, { bridgeAvailable: Boolean(cliController || (bridge && bridge.available !== false)) }),
+        h(cliSectionRef.current, {
+          bridgeAvailable: bridgeUp,
+          onRefreshModels: () => panelController.refreshModels(),
+          refreshingModels: panelState.refreshingModels,
+          canRefreshModels: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          onPinDesktop: () => panelController.pinDesktopWindow(),
+          pinningDesktop: panelState.pinningDesktop,
+          canPinDesktop: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          desktopNeedsRepin: Boolean(
+            panelState.desktopError &&
+              (panelState.desktopError.code === 'desktop_target_changed' ||
+                panelState.desktopError.code === 'desktop_target_unverified'),
+          ),
+        }),
         h('h1', { className: 'antigravity-sidebar-page__title' }, t('title')),
         h('label', { className: 'antigravity-sidebar-page__session' }, t('sidebar.chooseSession'),
           h('select', { value: sessionId, onChange: changeSession, disabled: ids.length === 0, style: selectStyle },
@@ -2127,7 +2514,7 @@ export function createSidebarPage({ React, translate: t, Panel, retainSession, b
           ),
         ),
         selectedScope && !selectedScope.failed
-          ? h(Panel, { key: sessionId, sessionId, embedded: true })
+          ? h(Panel, { key: sessionId, sessionId, embedded: true, controller: panelController })
           : h('p', { className: 'antigravity-sidebar-page__empty', role: 'status' },
             t(waiting ? 'sidebar.opening' : !ids.length ? 'sidebar.noSessions' : selectedScope?.failed ? 'banner.noSession' : 'sidebar.chooseSession'),
           ),

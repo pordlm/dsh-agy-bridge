@@ -29,17 +29,22 @@ const zh = {
   'transport.acp': 'ACP（默认）',
   'transport.desktop': '桌面（备用，仅显式选择）',
   'transport.desktopUnavailable': '桌面备用当前不可用',
+  'transport.desktopDisabled': '桌面备用（未启用）',
+  'transport.desktopUnconfigured': '桌面备用（未配置窗口）',
   'model.label': '模型',
   'model.auto': '跟随会话当前设置',
+  'model.desktopCurrent': '使用窗口当前设置',
   'model.unsupported': '当前后端不能选择模型',
   'effort.label': '思考强度',
   'effort.auto': '跟随会话当前设置',
+  'effort.desktopCurrent': '使用窗口当前设置',
   'effort.unsupported': '当前后端不能选择思考强度',
   'attachments.label': 'Host 路径引用',
   'attachments.placeholder': '绝对路径，例如 D:\\work\\spec.md',
   'attachments.add': '添加路径',
   'attachments.remove': '移除',
   'attachments.pathOnly': '只发送路径引用，面板不读取文件内容',
+  'attachments.desktopPathOnly': '桌面通道仅支持 path_refs（绝对路径引用），不支持原生附件',
   'attachments.unsupported': '当前后端不支持 Host 路径引用',
   'attachments.filesLabel': '文件附件（DSH 会话上传）',
   'attachments.choose': '选择文件',
@@ -134,6 +139,24 @@ const zh = {
   'activity.kind.unknown': '未知',
   'thought.summary': '思考概况',
   'session.label': '当前会话',
+  'models.refresh': '刷新模型目录',
+  'models.refreshing': '正在刷新…',
+  'models.refreshed': '已刷新（{count} 个模型，耗时 {ms}ms）',
+  'models.degraded': '部分模型探测降级：{items}',
+  'models.refreshFailed': '刷新模型目录失败（{code}）：{message}',
+  'models.stale': '以下为上次可用（{time}）的旧模型列表；本次刷新失败',
+  'desktop.pinWindow': '固定当前窗口',
+  'desktop.repinWindow': '重新固定窗口',
+  'desktop.pinning': '正在探测窗口…',
+  'desktop.chooseCandidate': '发现多个 Antigravity 窗口，请选择要固定的目标：',
+  'desktop.confirmPin': '固定所选窗口',
+  'desktop.pinnedSummary': '已固定窗口：pid {pid} · hwnd {hwnd} · {uri}（{time}）',
+  'desktop.error.desktop_disabled': '桌面备用通道未启用（{code}）',
+  'desktop.error.desktop_target_not_configured': '尚未配置或固定桌面窗口目标（{code}）',
+  'desktop.error.desktop_target_changed': '固定的桌面窗口已变化（{field}）（{code}）',
+  'desktop.error.desktop_target_unverified': '未能唯一校验桌面窗口目标（{code}）',
+  'desktop.error.desktop_permission_pending': '桌面会话正在等待权限确认，请在 Antigravity 窗口处理（{code}）',
+  'desktop.error.generic': '桌面通道异常（{code}）：{message}',
 };
 
 const en = {
@@ -145,17 +168,22 @@ const en = {
   'transport.acp': 'ACP (default)',
   'transport.desktop': 'Desktop (fallback, explicit only)',
   'transport.desktopUnavailable': 'Desktop fallback is unavailable',
+  'transport.desktopDisabled': 'Desktop fallback (disabled)',
+  'transport.desktopUnconfigured': 'Desktop fallback (no target configured)',
   'model.label': 'Model',
   'model.auto': 'Follow the session setting',
+  'model.desktopCurrent': 'Uses current window setting',
   'model.unsupported': 'This backend cannot select a model',
   'effort.label': 'Thinking effort',
   'effort.auto': 'Follow the session setting',
+  'effort.desktopCurrent': 'Uses current window setting',
   'effort.unsupported': 'This backend cannot select a thinking effort',
   'attachments.label': 'Host path references',
   'attachments.placeholder': 'Absolute path, e.g. D:\\work\\spec.md',
   'attachments.add': 'Add path',
   'attachments.remove': 'Remove',
   'attachments.pathOnly': 'Only path references are sent; the panel never reads file contents',
+  'attachments.desktopPathOnly': 'Desktop channel supports path_refs (absolute path references) only; native attachments are unsupported',
   'attachments.unsupported': 'This backend does not accept host path references',
   'attachments.filesLabel': 'File attachments (DSH session upload)',
   'attachments.choose': 'Choose files',
@@ -250,6 +278,24 @@ const en = {
   'activity.kind.unknown': 'Unknown',
   'thought.summary': 'Thinking summary',
   'session.label': 'Current session',
+  'models.refresh': 'Refresh model catalog',
+  'models.refreshing': 'Refreshing…',
+  'models.refreshed': 'Refreshed ({count} models, {ms}ms)',
+  'models.degraded': 'Some models degraded: {items}',
+  'models.refreshFailed': 'Failed to refresh model catalog ({code}): {message}',
+  'models.stale': 'Showing last usable list ({time}); refresh failed',
+  'desktop.pinWindow': 'Pin current window',
+  'desktop.repinWindow': 'Re-pin window',
+  'desktop.pinning': 'Probing window…',
+  'desktop.chooseCandidate': 'Multiple Antigravity windows found; choose one to pin:',
+  'desktop.confirmPin': 'Pin selected window',
+  'desktop.pinnedSummary': 'Pinned window: pid {pid} · hwnd {hwnd} · {uri} ({time})',
+  'desktop.error.desktop_disabled': 'Desktop fallback channel is disabled ({code})',
+  'desktop.error.desktop_target_not_configured': 'No desktop window target configured or pinned ({code})',
+  'desktop.error.desktop_target_changed': 'Pinned desktop window changed ({field}) ({code})',
+  'desktop.error.desktop_target_unverified': 'Could not uniquely verify desktop window target ({code})',
+  'desktop.error.desktop_permission_pending': 'Desktop session is awaiting permission in the Antigravity window ({code})',
+  'desktop.error.generic': 'Desktop channel error ({code}): {message}',
 };
 
 const DICTIONARIES = Object.freeze({ zh, en });
@@ -351,6 +397,9 @@ function createUnavailableBridge(reason = 'remote_unavailable') {
     nativeActivity: reject,
     authStatus: reject,
     login: reject,
+    refreshModels: reject,
+    desktopStatus: reject,
+    desktopPin: reject,
   };
 }
 
@@ -477,6 +526,9 @@ function createRemoteBridge(source, namespace = 'antigravityBridge') {
     nativeActivity: (sessionId, options) => invoke('nativeActivity', [{ sessionId }], options),
     authStatus: (options) => invoke('authStatus', [], options),
     login: (options) => invoke('login', [], options),
+    refreshModels: (options) => invoke('refreshModels', [], options),
+    desktopStatus: (payload, options) => invoke('desktopStatus', [payload || {}], options),
+    desktopPin: (payload, options) => invoke('desktopPin', [payload || {}], options),
   };
 }
 
@@ -561,6 +613,17 @@ function createPanelController(options = {}) {
     cliVersion: '',
     cliAuthMessage: null,
     cliAuthFlow: null,
+    refreshingModels: false,
+    modelsRefreshMeta: null,
+    modelsLastSuccessAt: null,
+    modelsStale: false,
+    modelsRefreshError: null,
+    pinningDesktop: false,
+    desktopPinTarget: null,
+    desktopPinnedAt: '',
+    desktopCandidates: [],
+    desktopSelectedHwnd: '',
+    desktopError: null,
   };
 
   function snapshot() {
@@ -873,7 +936,15 @@ function createPanelController(options = {}) {
       const capabilities = result && result.capabilities ? result.capabilities : null;
       const transports = capabilities && Array.isArray(capabilities.transports) ? capabilities.transports : [];
       const transport = transports.includes(state.transport) ? state.transport : transports[0] || 'acp';
-      patch({ capabilities, capabilitiesError: null, transport, bridgeAvailable: true });
+      const hasModels = capabilities && Array.isArray(capabilities.models) && capabilities.models.length > 0;
+      patch({
+        capabilities,
+        capabilitiesError: null,
+        transport,
+        bridgeAvailable: true,
+        desktopPinTarget: (capabilities && capabilities.target) || null,
+        ...(hasModels ? { modelsLastSuccessAt: state.modelsLastSuccessAt ?? now(), modelsStale: false } : {}),
+      });
       if (!state.jobId && session) {
         void fetchNativeActivity(generation, session);
         scheduleNativePoll();
@@ -918,6 +989,21 @@ function createPanelController(options = {}) {
       patch({ bridgeAvailable: false, error: 'remote_unavailable' });
       return Promise.resolve({ ok: false, code: 'remote_unavailable' });
     }
+    if (state.transport === 'desktop') {
+      const desktopEnabled = Boolean(state.capabilities && state.capabilities.desktop === true);
+      const desktopTarget = state.desktopPinTarget || (state.capabilities && state.capabilities.target) || null;
+      if (!desktopEnabled) {
+        patch({ error: 'desktop_disabled', desktopError: { code: 'desktop_disabled', message: 'desktop_disabled', driftField: '' } });
+        return Promise.resolve({ ok: false, code: 'desktop_disabled' });
+      }
+      if (!desktopTarget) {
+        patch({
+          error: 'desktop_target_not_configured',
+          desktopError: { code: 'desktop_target_not_configured', message: 'desktop_target_not_configured', driftField: '' },
+        });
+        return Promise.resolve({ ok: false, code: 'desktop_target_not_configured' });
+      }
+    }
 
     // The intent id survives an ambiguous acceptance: pressing Dispatch again
     // observes the same Host job instead of producing a second prompt. A new
@@ -928,6 +1014,7 @@ function createPanelController(options = {}) {
     // Once an intent exists its request snapshot is immutable: retrying the
     // same intent (including after a lost acknowledgement) must not turn edited
     // local fields into a different request. Only newIntent() starts over.
+    const isDesktop = state.transport === 'desktop';
     const payload =
       state.intentId && state.intentRequest
         ? state.intentRequest
@@ -935,10 +1022,10 @@ function createPanelController(options = {}) {
             clientRequestId: requestId,
             message: state.message,
             transport: state.transport,
-            model: state.model || null,
-            effort: state.effort || null,
+            model: isDesktop ? null : state.model || null,
+            effort: isDesktop ? null : state.effort || null,
             pathRefs: [...state.pathRefs],
-            attachments: state.files.map((entry) => entry.receiptId),
+            attachments: isDesktop ? [] : state.files.map((entry) => entry.receiptId),
           });
     patch({
       busy: true,
@@ -966,6 +1053,7 @@ function createPanelController(options = {}) {
         if (!result || result.ok !== true) {
           const code = (result && result.code) || 'not_sent';
           const notSent = Boolean(result && result.status === 'not_sent');
+          const isDesktopErr = typeof code === 'string' && code.startsWith('desktop_');
           patch({
             busy: false,
             phase: notSent ? 'not_sent' : 'unknown',
@@ -973,6 +1061,15 @@ function createPanelController(options = {}) {
             intentRequest: notSent ? null : payload,
             jobId: (result && result.jobId) || null,
             error: code,
+            ...(isDesktopErr
+              ? {
+                  desktopError: {
+                    code,
+                    message: (result && result.message) || code,
+                    driftField: (result && result.detail && result.detail.driftField) || '',
+                  },
+                }
+              : {}),
           });
           return { ok: false, code, jobId: (result && result.jobId) || null };
         }
@@ -1180,10 +1277,30 @@ function createPanelController(options = {}) {
   function setTransport(transport) {
     const transports = state.capabilities && Array.isArray(state.capabilities.transports) ? state.capabilities.transports : ['acp'];
     if (!transports.includes(transport)) {
-      patch({ error: 'unsupported_capability', notice: 'transport' });
+      const code = transport === 'desktop' ? 'desktop_disabled' : 'unsupported_capability';
+      patch({
+        error: code,
+        notice: 'transport',
+        ...(transport === 'desktop' ? { desktopError: { code: 'desktop_disabled', message: 'desktop_disabled', driftField: '' } } : {}),
+      });
       return false;
     }
-    patch({ transport });
+    const desktopTarget = state.desktopPinTarget || (state.capabilities && state.capabilities.target) || null;
+    if (transport === 'desktop' && !desktopTarget) {
+      patch({
+        transport,
+        desktopError: { code: 'desktop_target_not_configured', message: 'desktop_target_not_configured', driftField: '' },
+      });
+      return true;
+    }
+    patch({
+      transport,
+      ...(transport === 'acp' &&
+      state.desktopError &&
+      (state.desktopError.code === 'desktop_disabled' || state.desktopError.code === 'desktop_target_not_configured')
+        ? { desktopError: null }
+        : {}),
+    });
     return true;
   }
 
@@ -1386,6 +1503,121 @@ function createPanelController(options = {}) {
     }
   }
 
+  async function refreshModels() {
+    if (disposed) return { ok: false, code: 'disposed' };
+    if (!boundSession) return { ok: false, code: 'session_unknown' };
+    if (!bridgeUp() || typeof bridge.refreshModels !== 'function') {
+      const err = { code: 'remote_unavailable', message: 'remote_unavailable' };
+      patch({ modelsRefreshError: err, modelsStale: true });
+      return { ok: false, ...err };
+    }
+    if (state.refreshingModels) return { ok: false, code: 'busy' };
+    const generation = sessionGeneration;
+    patch({ refreshingModels: true, modelsRefreshError: null });
+    try {
+      const result = await bridge.refreshModels({ session: boundSession });
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      if (!result || result.ok === false) {
+        const err = {
+          code: (result && typeof result.code === 'string' && result.code) || 'catalog_refresh_failed',
+          message: (result && typeof result.message === 'string' && result.message) || 'catalog_refresh_failed',
+        };
+        patch({
+          refreshingModels: false,
+          modelsRefreshError: err,
+          modelsStale: true,
+        });
+        return { ok: false, ...err };
+      }
+      const nextModels = Array.isArray(result.models)
+        ? result.models.map((item) => (typeof item === 'string' ? item : item && item.id)).filter(Boolean)
+        : [];
+      const degraded = Array.isArray(result.degraded) ? result.degraded : [];
+      const meta = {
+        discoveredAt: result.discoveredAt || '',
+        elapsedMs: Number.isFinite(result.elapsedMs) ? result.elapsedMs : 0,
+        degraded,
+        count: nextModels.length,
+      };
+      patch({
+        refreshingModels: false,
+        modelsRefreshMeta: meta,
+        modelsLastSuccessAt: now(),
+        modelsStale: false,
+        modelsRefreshError: null,
+        capabilities: { ...(state.capabilities || {}), models: nextModels },
+      });
+      return { ok: true, models: nextModels, ...meta };
+    } catch (error) {
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      const err = {
+        code: readErrorCode(error),
+        message: String((error && error.message) || error || 'request_failed'),
+      };
+      patch({
+        refreshingModels: false,
+        modelsRefreshError: err,
+        modelsStale: true,
+      });
+      return { ok: false, ...err };
+    }
+  }
+
+  function setDesktopSelectedHwnd(hwnd) {
+    patch({ desktopSelectedHwnd: hwnd == null ? '' : String(hwnd) });
+  }
+
+  async function pinDesktopWindow({ hwnd } = {}) {
+    if (disposed) return { ok: false, code: 'disposed' };
+    if (!boundSession) return { ok: false, code: 'session_unknown' };
+    if (!bridgeUp() || typeof bridge.desktopPin !== 'function') {
+      const err = { code: 'remote_unavailable', message: 'remote_unavailable', driftField: '' };
+      patch({ desktopError: err });
+      return { ok: false, ...err };
+    }
+    if (state.pinningDesktop) return { ok: false, code: 'busy' };
+    const generation = sessionGeneration;
+    patch({ pinningDesktop: true, desktopError: null });
+    try {
+      const result = await bridge.desktopPin(
+        { action: 'pin', ...(hwnd !== undefined && hwnd !== '' ? { hwnd } : {}) },
+        { session: boundSession },
+      );
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      if (result && result.ok === true && result.target) {
+        patch({
+          pinningDesktop: false,
+          desktopPinTarget: result.target,
+          desktopPinnedAt: new Date(now()).toISOString(),
+          desktopCandidates: [],
+          desktopSelectedHwnd: '',
+          desktopError: null,
+          capabilities: { ...(state.capabilities || {}), target: result.target },
+        });
+        return result;
+      }
+      const code = (result && typeof result.code === 'string' && result.code) || 'desktop_target_unverified';
+      const candidates = Array.isArray(result && result.candidates) ? result.candidates : [];
+      patch({
+        pinningDesktop: false,
+        desktopCandidates: candidates,
+        desktopSelectedHwnd: candidates[0] && candidates[0].hwnd != null ? String(candidates[0].hwnd) : '',
+        desktopError: {
+          code,
+          message: (result && result.message) || code,
+          driftField: (result && result.detail && result.detail.driftField) || '',
+        },
+      });
+      return { ok: false, code, candidates };
+    } catch (error) {
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      const code = readErrorCode(error) || 'desktop_target_unverified';
+      const err = { code, message: String((error && error.message) || error || code), driftField: '' };
+      patch({ pinningDesktop: false, desktopError: err });
+      return { ok: false, ...err };
+    }
+  }
+
   function subscribe(listener) {
     listeners.add(listener);
     return () => listeners.delete(listener);
@@ -1409,6 +1641,9 @@ function createPanelController(options = {}) {
     readReply,
     refreshCapabilities,
     refreshAuthStatus,
+    refreshModels,
+    pinDesktopWindow,
+    setDesktopSelectedHwnd,
     loginCli,
     setSession,
     setCollapsed,
@@ -1598,24 +1833,26 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
 
   return function AntigravityBridgePanel(props) {
     const slotSessionId = (props && (props.sessionId || (props.session && props.session.id) || (props.conversation && props.conversation.id))) || null;
-    const controllerRef = useRef(null);
+    const injectedController = props && props.controller ? props.controller : null;
+    const controllerRef = useRef(injectedController);
     if (controllerRef.current === null) {
       controllerRef.current = createPanelController({
         bridge, sessionId: slotSessionId, uploader, getUploader: getUploader || undefined,
       });
     }
-    const controller = controllerRef.current;
-    const [state, setState] = useState(controller.getState());
+    const controller = injectedController || controllerRef.current;
+    const [state, setState] = useState(() => controller.getState());
     const pathInputRef = useRef(null);
     const fileInputRef = useRef(null);
 
     useEffect(() => {
+      setState(controller.getState());
       const unsubscribe = controller.subscribe(setState);
       return () => {
         unsubscribe();
-        controller.dispose();
+        if (!injectedController) controller.dispose();
       };
-    }, [controller]);
+    }, [controller, injectedController]);
 
     useEffect(() => {
       // Switching the slot's conversation clears the panel's inputs (see
@@ -1627,12 +1864,14 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
 
     const capabilities = state.capabilities;
     const transports = capabilities && Array.isArray(capabilities.transports) ? capabilities.transports : ['acp'];
-    const desktopAvailable = transports.includes('desktop');
+    const desktopEnabled = Boolean(capabilities && capabilities.desktop === true) || transports.includes('desktop');
+    const desktopTarget = state.desktopPinTarget || (capabilities && capabilities.target) || null;
+    const isDesktop = state.transport === 'desktop';
     const models = capabilities && Array.isArray(capabilities.models) ? capabilities.models : null;
     const efforts = capabilities && Array.isArray(capabilities.efforts) ? capabilities.efforts : null;
     const pathRefsSupported = Boolean(capabilities && capabilities.attachments && capabilities.attachments.pathRefs);
     const uploadSupported = Boolean(
-      capabilities && capabilities.attachments && capabilities.attachments.uploadReceipt && (getUploader || uploader),
+      !isDesktop && capabilities && capabilities.attachments && capabilities.attachments.uploadReceipt && (getUploader || uploader),
     );
 
     const header = h(
@@ -1685,6 +1924,12 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
       banners.push(h('p', { key: 'xsession', className: 'antigravity-bridge__banner', role: 'alert' }, t('banner.crossSession')));
     }
 
+    const desktopOptionLabel = !desktopEnabled
+      ? t('transport.desktopDisabled')
+      : desktopTarget
+        ? t('transport.desktop')
+        : t('transport.desktopUnconfigured');
+
     const transportField = h(
       'label',
       { className: 'antigravity-bridge__field', key: 'transport' },
@@ -1697,7 +1942,7 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
           onChange: (event) => controller.setTransport(event.target.value),
         },
         h('option', { value: 'acp' }, t('transport.acp')),
-        h('option', { value: 'desktop', disabled: !desktopAvailable }, desktopAvailable ? t('transport.desktop') : t('transport.desktopUnavailable')),
+        h('option', { value: 'desktop', disabled: !desktopEnabled }, desktopOptionLabel),
       ),
     );
 
@@ -1705,29 +1950,157 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
       'label',
       { className: 'antigravity-bridge__field', key: 'model' },
       h('span', null, t('model.label')),
-      models && models.length > 0
+      isDesktop
         ? h(
             'select',
-            { value: state.model, disabled: state.busy, onChange: (event) => controller.setModel(event.target.value) },
-            h('option', { value: '' }, t('model.auto')),
-            models.map((value) => h('option', { key: value, value }, value)),
+            { value: '', disabled: true, 'data-testid': 'desktop-model-readonly' },
+            h('option', { value: '' }, t('model.desktopCurrent')),
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('model.unsupported')),
+        : models && models.length > 0
+          ? h(
+              'select',
+              { value: state.model, disabled: state.busy, onChange: (event) => controller.setModel(event.target.value) },
+              h('option', { value: '' }, t('model.auto')),
+              models.map((value) => h('option', { key: value, value }, value)),
+            )
+          : h('span', { className: 'antigravity-bridge__hint' }, t('model.unsupported')),
     );
+
+    const hasModelStatus = Boolean(
+      state.modelsRefreshMeta || state.modelsRefreshError || state.modelsStale,
+    );
+    const modelStatusRow = hasModelStatus
+      ? h(
+          'div',
+          { className: 'antigravity-bridge__model-status', 'data-testid': 'models-status-row' },
+          state.modelsRefreshMeta
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__hint', 'data-testid': 'models-refresh-meta' },
+                t('models.refreshed', { count: state.modelsRefreshMeta.count, ms: state.modelsRefreshMeta.elapsedMs }),
+              )
+            : null,
+          state.modelsRefreshMeta && state.modelsRefreshMeta.degraded && state.modelsRefreshMeta.degraded.length > 0
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__warning', 'data-testid': 'models-refresh-degraded' },
+                t('models.degraded', {
+                  items: state.modelsRefreshMeta.degraded.map((d) => `${d.modelId}(${d.reason})`).join(', '),
+                }),
+              )
+            : null,
+          state.modelsRefreshError || state.modelsStale
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__warning', 'data-testid': 'models-stale-hint' },
+                t('models.stale', {
+                  time: state.modelsLastSuccessAt ? new Date(state.modelsLastSuccessAt).toTimeString().slice(0, 8) : '--:--:--',
+                }),
+              )
+            : null,
+          state.modelsRefreshError
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__error', 'data-testid': 'models-refresh-error' },
+                t('models.refreshFailed', {
+                  code: state.modelsRefreshError.code,
+                  message: state.modelsRefreshError.message,
+                }),
+              )
+            : null,
+        )
+      : null;
 
     const effortField = h(
       'label',
       { className: 'antigravity-bridge__field', key: 'effort' },
       h('span', null, t('effort.label')),
-      efforts && efforts.length > 0
+      isDesktop
         ? h(
             'select',
-            { value: state.effort, disabled: state.busy, onChange: (event) => controller.setEffort(event.target.value) },
-            h('option', { value: '' }, t('effort.auto')),
-            efforts.map((value) => h('option', { key: value, value }, value)),
+            { value: '', disabled: true, 'data-testid': 'desktop-effort-readonly' },
+            h('option', { value: '' }, t('effort.desktopCurrent')),
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('effort.unsupported')),
+        : efforts && efforts.length > 0
+          ? h(
+              'select',
+              { value: state.effort, disabled: state.busy, onChange: (event) => controller.setEffort(event.target.value) },
+              h('option', { value: '' }, t('effort.auto')),
+              efforts.map((value) => h('option', { key: value, value }, value)),
+            )
+          : h('span', { className: 'antigravity-bridge__hint' }, t('effort.unsupported')),
     );
+
+    const formatDesktopError = (err) => {
+      if (!err || !err.code) return '';
+      const key = `desktop.error.${err.code}`;
+      const formatted = t(key, { code: err.code, field: err.driftField || 'target', message: err.message || err.code });
+      return formatted === key
+        ? t('desktop.error.generic', { code: err.code, message: err.message || err.code })
+        : formatted;
+    };
+
+    const hasDesktopRow = Boolean(desktopTarget || state.desktopError || (state.desktopCandidates && state.desktopCandidates.length > 0));
+    const desktopStatusRow = hasDesktopRow
+      ? h(
+          'div',
+          { className: 'antigravity-bridge__model-status', 'data-testid': 'desktop-status-row' },
+          desktopTarget
+            ? h(
+                'span',
+                { className: 'antigravity-bridge__hint', 'data-testid': 'desktop-pinned-summary' },
+                t('desktop.pinnedSummary', {
+                  pid: desktopTarget.pid,
+                  hwnd: desktopTarget.hwnd,
+                  uri: desktopTarget.uri,
+                  time: state.desktopPinnedAt ? new Date(state.desktopPinnedAt).toTimeString().slice(0, 8) : '--:--:--',
+                }),
+              )
+            : null,
+          state.desktopCandidates && state.desktopCandidates.length > 0
+            ? h(
+                'div',
+                { className: 'antigravity-bridge__pathrow', 'data-testid': 'desktop-candidate-picker' },
+                h('span', { className: 'antigravity-bridge__hint' }, t('desktop.chooseCandidate')),
+                h(
+                  'select',
+                  {
+                    'data-testid': 'desktop-candidate-select',
+                    value: state.desktopSelectedHwnd || String(state.desktopCandidates[0].hwnd),
+                    onChange: (event) => controller.setDesktopSelectedHwnd(event.target.value),
+                  },
+                  state.desktopCandidates.map((c) =>
+                    h('option', { key: String(c.hwnd), value: String(c.hwnd) }, `pid ${c.pid} · hwnd ${c.hwnd} · ${c.redactedUri || ''}`),
+                  ),
+                ),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    'data-action': 'confirm-pin-desktop',
+                    disabled: state.pinningDesktop,
+                    onClick: () =>
+                      void controller.pinDesktopWindow({
+                        hwnd: state.desktopSelectedHwnd || (state.desktopCandidates[0] && state.desktopCandidates[0].hwnd),
+                      }),
+                  },
+                  t('desktop.confirmPin'),
+                ),
+              )
+            : null,
+          state.desktopError
+            ? h(
+                'span',
+                {
+                  className: 'antigravity-bridge__error',
+                  'data-testid': 'desktop-error',
+                  'data-error-code': state.desktopError.code,
+                },
+                formatDesktopError(state.desktopError),
+              )
+            : null,
+        )
+      : null;
 
     const attachmentField = h(
       'div',
@@ -1832,7 +2205,9 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
               ? h('span', { className: 'antigravity-bridge__hint', role: 'alert' }, t('attachments.uploadFailed'))
               : null,
           )
-        : h('span', { className: 'antigravity-bridge__hint' }, t('attachments.fileUnsupported')),
+        : isDesktop
+          ? h('span', { className: 'antigravity-bridge__hint', 'data-testid': 'desktop-path-only-hint' }, t('attachments.desktopPathOnly'))
+          : h('span', { className: 'antigravity-bridge__hint' }, t('attachments.fileUnsupported')),
     );
 
     const authBar = h(
@@ -1918,6 +2293,8 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
         }),
       ),
       h('div', { className: 'antigravity-bridge__row' }, transportField, modelField, effortField),
+      modelStatusRow,
+      desktopStatusRow,
       attachmentField,
       h(
         'div',
@@ -1927,7 +2304,7 @@ function createPanelComponent({ React, translate = createTranslator(), bridge, u
           {
             type: 'button',
             className: 'antigravity-bridge__primary',
-            disabled: state.busy || !state.sessionReady || !state.bridgeAvailable || state.message.trim() === '',
+            disabled: state.busy || !state.sessionReady || !state.bridgeAvailable || state.message.trim() === '' || (isDesktop && !desktopTarget),
             onClick: () => void controller.dispatch(),
           },
           state.busy ? t('state.pending') : t('actions.dispatch'),
@@ -2308,6 +2685,34 @@ function createCliSectionComponent({ React, translate: t = createTranslator(), c
         { className: 'antigravity-cli-status__actions' },
         h('button', { type: 'button', 'data-action': 'cli-status-refresh', onClick: () => void controller.refresh() }, t('cli.refresh')),
         h('button', { type: 'button', 'data-action': 'cli-login-terminal', disabled: state.installation === 'missing', onClick: () => void controller.login() }, t('cli.openLogin')),
+        props && typeof props.onRefreshModels === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                'data-action': 'refresh-models',
+                disabled: Boolean(props.refreshingModels) || !bridgeAvailable || props.canRefreshModels === false,
+                onClick: () => void props.onRefreshModels(),
+              },
+              props.refreshingModels ? t('models.refreshing') : t('models.refresh'),
+            )
+          : null,
+        props && typeof props.onPinDesktop === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                'data-action': 'pin-desktop',
+                disabled: Boolean(props.pinningDesktop) || !bridgeAvailable || props.canPinDesktop === false,
+                onClick: () => void props.onPinDesktop(),
+              },
+              props.pinningDesktop
+                ? t('desktop.pinning')
+                : props.desktopNeedsRepin
+                  ? t('desktop.repinWindow')
+                  : t('desktop.pinWindow'),
+            )
+          : null,
       ),
       flowHint,
       state.message
@@ -2373,9 +2778,23 @@ function createSidebarPage({ React, translate: t, Panel, retainSession, bridge, 
         controller: cliControllerRef.current,
       });
     }
-    useEffect(() => () => {
-      if (!cliController && cliControllerRef.current) cliControllerRef.current.dispose();
-    }, []);
+    const panelControllerRef = useRef(null);
+    if (panelControllerRef.current === null) {
+      panelControllerRef.current = createPanelController({
+        bridge: bridge || createUnavailableBridge(),
+        sessionId: sessionId || null,
+      });
+    }
+    const panelController = panelControllerRef.current;
+    const [panelState, setPanelState] = useState(() => panelController.getState());
+    useEffect(() => {
+      const unsubPanel = panelController.subscribe(setPanelState);
+      return () => {
+        unsubPanel();
+        panelController.dispose();
+        if (!cliController && cliControllerRef.current) cliControllerRef.current.dispose();
+      };
+    }, [panelController]);
 
     useEffect(() => {
       if (!sessionId) return undefined;
@@ -2406,10 +2825,24 @@ function createSidebarPage({ React, translate: t, Panel, retainSession, bridge, 
     };
     const selectedScope = sessionId && scope?.sessionId === sessionId ? scope : null;
     const waiting = (!ids.length && phase !== 'ready') || (sessionId && !selectedScope);
+    const bridgeUp = Boolean(cliController || (bridge && bridge.available !== false));
     return h('div', { className: 'antigravity-sidebar-page', style: pageStyle, 'data-antigravity-sidebar-page': '' },
       h('style', { 'data-antigravity-sidebar-style': 'true' }, SIDEBAR_STYLES),
       h('div', { className: 'antigravity-sidebar-page__content', style: contentStyle },
-        h(cliSectionRef.current, { bridgeAvailable: Boolean(cliController || (bridge && bridge.available !== false)) }),
+        h(cliSectionRef.current, {
+          bridgeAvailable: bridgeUp,
+          onRefreshModels: () => panelController.refreshModels(),
+          refreshingModels: panelState.refreshingModels,
+          canRefreshModels: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          onPinDesktop: () => panelController.pinDesktopWindow(),
+          pinningDesktop: panelState.pinningDesktop,
+          canPinDesktop: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          desktopNeedsRepin: Boolean(
+            panelState.desktopError &&
+              (panelState.desktopError.code === 'desktop_target_changed' ||
+                panelState.desktopError.code === 'desktop_target_unverified'),
+          ),
+        }),
         h('h1', { className: 'antigravity-sidebar-page__title' }, t('title')),
         h('label', { className: 'antigravity-sidebar-page__session' }, t('sidebar.chooseSession'),
           h('select', { value: sessionId, onChange: changeSession, disabled: ids.length === 0, style: selectStyle },
@@ -2418,7 +2851,7 @@ function createSidebarPage({ React, translate: t, Panel, retainSession, bridge, 
           ),
         ),
         selectedScope && !selectedScope.failed
-          ? h(Panel, { key: sessionId, sessionId, embedded: true })
+          ? h(Panel, { key: sessionId, sessionId, embedded: true, controller: panelController })
           : h('p', { className: 'antigravity-sidebar-page__empty', role: 'status' },
             t(waiting ? 'sidebar.opening' : !ids.length ? 'sidebar.noSessions' : selectedScope?.failed ? 'banner.noSession' : 'sidebar.chooseSession'),
           ),
@@ -2453,7 +2886,7 @@ const PANEL_REGISTRATION = Object.freeze({ name: PANEL_SLOT, id: PANEL_ID, order
         }
         return value;
       }
-      var TYPERT_REMOTE = __reviveRemote({"package":"dsh-agy-bridge","descriptors":[{"id":"dsh-agy-bridge#antigravityBridge/capabilities","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"capabilities","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}}],"result":{"__codec":true,"typeSymbol":"bridge:CapabilitiesResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/dispatch","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"dispatch","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:DispatchRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"clientRequestId":{"type":"string","maxLength":200},"message":{"type":"string","maxLength":100000},"transport":{"type":"string","enum":["acp","desktop"]},"conversationId":{"type":"string","maxLength":200},"profile":{"oneOf":[{"type":"string"},{"type":"null"}]},"model":{"oneOf":[{"type":"string"},{"type":"null"}]},"effort":{"oneOf":[{"type":"string"},{"type":"null"}]},"pathRefs":{"type":"array","items":{"type":"string"},"maxItems":20},"attachments":{"type":"array","items":{"type":"string"},"maxItems":10}},"required":["message"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:DispatchRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"clientRequestId":{"type":"string","maxLength":200},"message":{"type":"string","maxLength":100000},"transport":{"type":"string","enum":["acp","desktop"]},"conversationId":{"type":"string","maxLength":200},"profile":{"oneOf":[{"type":"string"},{"type":"null"}]},"model":{"oneOf":[{"type":"string"},{"type":"null"}]},"effort":{"oneOf":[{"type":"string"},{"type":"null"}]},"pathRefs":{"type":"array","items":{"type":"string"},"maxItems":20},"attachments":{"type":"array","items":{"type":"string"},"maxItems":10}},"required":["message"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:DispatchResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/status","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"status","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:StatusResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/reply","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"reply","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:ReplyResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/cancel","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"cancel","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:CancelResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/activity","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"activity","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:ActivityResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/nativeActivity","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"nativeActivity","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:NativeActivityRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"sessionId":{"type":"string","maxLength":200},"scope":{"type":"string","maxLength":200},"agentId":{"type":"string","maxLength":200}},"required":["sessionId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:NativeActivityRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"sessionId":{"type":"string","maxLength":200},"scope":{"type":"string","maxLength":200},"agentId":{"type":"string","maxLength":200}},"required":["sessionId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:NativeActivityResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/authStatus","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"authStatus","invocation":{"kind":"direct"},"parameters":[],"result":{"__codec":true,"typeSymbol":"bridge:AuthStatusResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/login","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"login","invocation":{"kind":"direct"},"parameters":[],"result":{"__codec":true,"typeSymbol":"bridge:LoginResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"}},"required":["ok"]}}}]});
+      var TYPERT_REMOTE = __reviveRemote({"package":"dsh-agy-bridge","descriptors":[{"id":"dsh-agy-bridge#antigravityBridge/capabilities","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"capabilities","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}}],"result":{"__codec":true,"typeSymbol":"bridge:CapabilitiesResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/dispatch","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"dispatch","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:DispatchRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"clientRequestId":{"type":"string","maxLength":200},"message":{"type":"string","maxLength":100000},"transport":{"type":"string","enum":["acp","desktop"]},"conversationId":{"type":"string","maxLength":200},"profile":{"oneOf":[{"type":"string"},{"type":"null"}]},"model":{"oneOf":[{"type":"string"},{"type":"null"}]},"effort":{"oneOf":[{"type":"string"},{"type":"null"}]},"pathRefs":{"type":"array","items":{"type":"string"},"maxItems":20},"attachments":{"type":"array","items":{"type":"string"},"maxItems":10}},"required":["message"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:DispatchRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"clientRequestId":{"type":"string","maxLength":200},"message":{"type":"string","maxLength":100000},"transport":{"type":"string","enum":["acp","desktop"]},"conversationId":{"type":"string","maxLength":200},"profile":{"oneOf":[{"type":"string"},{"type":"null"}]},"model":{"oneOf":[{"type":"string"},{"type":"null"}]},"effort":{"oneOf":[{"type":"string"},{"type":"null"}]},"pathRefs":{"type":"array","items":{"type":"string"},"maxItems":20},"attachments":{"type":"array","items":{"type":"string"},"maxItems":10}},"required":["message"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:DispatchResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/status","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"status","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:StatusResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/reply","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"reply","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:ReplyResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/cancel","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"cancel","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:CancelResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/activity","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"activity","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:JobRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string","maxLength":200}},"required":["jobId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:ActivityResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/nativeActivity","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"nativeActivity","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:NativeActivityRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"sessionId":{"type":"string","maxLength":200},"scope":{"type":"string","maxLength":200},"agentId":{"type":"string","maxLength":200}},"required":["sessionId"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:NativeActivityRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"sessionId":{"type":"string","maxLength":200},"scope":{"type":"string","maxLength":200},"agentId":{"type":"string","maxLength":200}},"required":["sessionId"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:NativeActivityResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/authStatus","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"authStatus","invocation":{"kind":"direct"},"parameters":[],"result":{"__codec":true,"typeSymbol":"bridge:AuthStatusResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/login","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"login","invocation":{"kind":"direct"},"parameters":[],"result":{"__codec":true,"typeSymbol":"bridge:LoginResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/refreshModels","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"refreshModels","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}}],"result":{"__codec":true,"typeSymbol":"bridge:RefreshModelsResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/desktopStatus","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"desktopStatus","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:DesktopStatusRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"includeCandidates":{"type":"boolean"}}}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:DesktopStatusRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"includeCandidates":{"type":"boolean"}}}}}],"result":{"__codec":true,"typeSymbol":"bridge:DesktopStatusResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}},{"id":"dsh-agy-bridge#antigravityBridge/desktopPin","package":"dsh-agy-bridge","service":"antigravityBridge","namespace":"antigravityBridge","method":"desktopPin","invocation":{"kind":"direct"},"scope":{"context":"agent","wire":"agentId"},"parameters":[{"name":"agent","wire":"agentId","source":"lookup","lookup":"agent","description":"caller Agent resolved by the Host from the connection","codec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}},"strictCodec":{"__codec":true,"typeSymbol":"typert:agentId","jsonSchema":{"type":"string"}}},{"name":"request","wire":"request","source":"json","codec":{"__codec":true,"typeSymbol":"bridge:DesktopPinRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"action":{"type":"string","enum":["pin","clear"]},"hwnd":{"oneOf":[{"type":"number"},{"type":"string"}]},"pid":{"type":"number"}},"required":["action"]}},"strictCodec":{"__codec":true,"typeSymbol":"bridge:DesktopPinRequest","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"action":{"type":"string","enum":["pin","clear"]},"hwnd":{"oneOf":[{"type":"number"},{"type":"string"}]},"pid":{"type":"number"}},"required":["action"]}}}],"result":{"__codec":true,"typeSymbol":"bridge:DesktopPinResult","jsonSchema":{"type":"object","additionalProperties":false,"properties":{"ok":{"type":"boolean"},"reused":{"type":"boolean"},"jobId":{"type":"string"},"status":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"view":{"type":"object","additionalProperties":false,"properties":{"jobId":{"type":"string"},"transport":{"type":"string"},"state":{"type":"string"},"status":{"type":"string"},"conversationId":{"type":"string"},"sessionId":{"type":"string"},"desktopConversationId":{"type":"string"},"targetKind":{"type":"string"},"title":{"type":"string"},"code":{"type":"string"},"message":{"type":"string"},"wakeState":{"type":"string"},"stopReason":{"type":"string"},"cancelRequested":{"type":"boolean"},"permissionPending":{"type":"boolean"},"reply":{"type":"string"},"fileMode":{"type":"string"},"detail":{"type":"object","additionalProperties":false,"properties":{"phase":{"type":"string"}},"required":["phase"]},"requested":{"type":"object","additionalProperties":true},"effective":{"type":"object","additionalProperties":true},"confirmed":{"type":"object","additionalProperties":true},"permissions":{"type":"array","items":{"type":"object","additionalProperties":true}},"configOptions":{"type":"array","items":{"type":"object","additionalProperties":true}},"createdAt":{"type":"number"},"updatedAt":{"type":"number"}},"required":["jobId","state"]},"available":{"type":"boolean"},"text":{"type":"string"},"state":{"type":"string"},"cached":{"type":"boolean"},"cancelSent":{"type":"boolean"},"settled":{"type":"boolean"},"stopControl":{"type":"string"},"capabilities":{"type":"object","additionalProperties":true},"authStatus":{"type":"string"},"authMethods":{"type":"array","items":{"type":"object","additionalProperties":true}},"installation":{"type":"string"},"executable":{"type":"string"},"version":{"type":"string"},"dataDir":{"oneOf":[{"type":"string"},{"type":"null"}]},"dataDirWritable":{"type":"boolean"},"dataDirError":{"oneOf":[{"type":"string"},{"type":"null"}]},"reasonCode":{"oneOf":[{"type":"string"},{"type":"null"}]},"probe":{"type":"object","additionalProperties":false,"properties":{"authMethodCount":{"type":"number"},"sessionProbe":{"type":"string","enum":["ok","failed","skipped"]},"verifiedStatus":{"oneOf":[{"type":"string"},{"type":"null"}]}},"required":["authMethodCount","sessionProbe","verifiedStatus"]},"flow":{"type":"string"},"methodId":{"type":"string"},"command":{"type":"string"},"events":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"toolCallId":{"type":"string"},"kind":{"type":"string","enum":["execute","edit","read","other","unknown"]},"title":{"type":"string"},"status":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["toolCallId","kind","title","status"]}},"thoughts":{"type":"array","items":{"type":"object","additionalProperties":false,"properties":{"text":{"type":"string"},"updatedAt":{"type":"number"},"source":{"type":"string"}},"required":["text"]}},"truncated":{"type":"boolean"},"thoughtSummaryEnabled":{"type":"boolean"},"models":{"type":"array","items":{"type":"object","additionalProperties":true}},"discoveredAt":{"type":"string"},"elapsedMs":{"type":"number"},"degraded":{"type":"array","items":{"type":"object","additionalProperties":true}},"enabled":{"type":"boolean"},"pinned":{"type":"boolean"},"verified":{"type":"boolean"},"target":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"fallbackTarget":{"oneOf":[{"type":"object","additionalProperties":true},{"type":"null"}]},"targetKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":true},"candidates":{"type":"array","items":{"type":"object","additionalProperties":true}},"detail":{"type":"object","additionalProperties":true}},"required":["ok"]}}}]});
       return {
         name: "dsh-agy-bridge",
         inject: ['slots', 'locale', 'remote'],

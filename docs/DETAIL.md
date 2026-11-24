@@ -64,7 +64,7 @@ ACP 是唯一缺省通道。`transport: "desktop"` 才进入桌面通道，且�
 1. **目标校验**：`lib/desktop.js` 起一个 `pwsh -File lib/uia-driver.ps1` 子进程，
    请求体只走 stdin（不拼 shell）。驱动核对进程存在、启动时间差 ≤2s、可执行文件
    路径、顶层 `Chrome_WidgetWin_1` 窗口、当前 Document 完整 URI 与唯一会话链接。
-   任一不符即 `desktop_session_unverified` / `desktop_session_ambiguous`。
+   任一不符即归一为 `desktop_target_unverified`（旧码见下文映射表）。
 2. **派发前预检（两次只读）**：连续两次 `inspect`（间隔约 300ms，第二次独立、不带
    基线）都必须可写空闲：显式 `phase === "idle"`，或证据式推断——历史采集完整
    （`history.complete === true`）、无 Stop 控件、无权限卡、会话日志锚点存在。两次
@@ -200,7 +200,7 @@ profile 的启用/重载由队长部署；实现阶段只做构建与离线挂�
 
 ## 原生 Gemini provider
 
-`lib/model-catalog.js` 通过独立 metadata 会话发现 `antigravity-agy-acp` 模型目录。递归解析 grouped select，逐模型新建 scratch 会话选择并完整回读 thought；没有静态白名单或四档推测。目录实例缓存五分钟、并发 single-flight；查询零 prompt。`resolveModel` 保留 per-model efforts，省略 `defaultEffort`，避免 DSH 物化默认档位。
+`lib/model-catalog.js` 通过单次 `session/new` 返回的 `configOptions` 发现模型列表，并在同一个 scratch 会话内轮询 `session/set_config_option` 探测每个模型的 effort（单模型独立超时默认 6000ms）。单模型超时或业务拒绝仅将该条目标记为 `degraded`（保留 `modelId`/`reason`/`timedOut`/`elapsedMs`/`message`），不中止整轮也不丢弃其余模型；死传输（`isClosed`/`closed`/子进程退出）立即中止并保留上次可用快照。`entries.length === 0` 绝不写盘；磁盘缓存仅作失败 fallback 读取，正常成功路径不先读盘。全成功 TTL 为 300s，存在 `degraded` 条目时走 30s 短退避；`resolveModel` 未命中且已过冷却窗时触发一次重探。Web 面板提供只读「刷新模型目录」按钮与 `refreshModels` Remote 端点（单飞 + 1s 频控，失败显式返回错误码；契约 8bis-d 建议 3000ms，实现取 1s 兼顾人工点击体验且单飞已保证不堆积会话）。连续重基线上限 `MAX_CONSECUTIVE_REBASELINES = 3`（契约建议 2，取 3 以避免合法纠偏轮被早断）。`antigravity_reset_session` 在会话活跃或 `inFlight` 时抛出 `AGY_ACP_RESET_BUSY`（与 `AGY_ACP_ACCEPTANCE_UNKNOWN` 约束等价，均禁止本轮重发同一 prompt，保留专用码便于调用方区分 reset 场景）。刷新保证 bridge 侧目录及面板模型列表即时新鲜，并会向宿主发出 `llm/models-updated` 事件；经核实 `@deepseek-ai/dsh-llm` 的 `listModels()` 后端无缓存，但宿主前端模型选择器 `@deepseek-ai/dsh-client-ui-model-selection` 按会话持有 `ModelDirectory` 内存快照，若主聊天模型选择器尚未更新，需在选择器中点重载或刷新页面。
 
 - 显式 model 必须是 ACP 原值；`GenerateOptions.model` 是必填项，本实现选择 explicit-only，不提供虚拟 default alias。旧 `config.model` 不覆盖请求。effort 省略时取首次选定模型后 CLI currentValue；显式 low 后省略恢复保存基线。每轮 model → thought setter 的完整响应及最终组合回读必须一致；不可用档位错误含 provider/model/requested/available。
 - 同一 DSH session 的 transport 与 ACP session 可复用；native-sessions.json（`stateFile` 同目录）保存 DSH id、canonical cwd、ACP id、model、system hash、稳定消息 id/hash、assistant digest、baseline、pending turnKey 与最终结果。持久 pending 先于 prompt。历史前缀必须精确多出上轮 assistant 与一个新 user，assistant digest 必须与已确认输出相同。重复/编辑/丢失历史、无 id、工作区改变、system 改变均零 prompt 拒绝。无 sessionId 仅允许隔离单轮。
@@ -212,7 +212,38 @@ profile 的启用/重载由队长部署；实现阶段只做构建与离线挂�
 - system 能力存在时 new/resume/load 发送 `systemPrompt:{mode:'append',content:[text]}`；未声明时只在首轮 user 前缀传递（明确语义降级，账本 systemTransport=user-prefix）。不发送未声明 override。developer 明确拒绝。
 - 非承重工具目录被丢弃并把 `NO_TOOLS_NOTICE` 追加到 `systemText` 末尾；承重工具（`claim_task`/`update_task`/`send_message`/`create_task`/`reassign_task` 及 `agent_teams_`、`team_task_` 前缀）仍硬拒绝且零 prompt；工具历史与 `tool`/`developer` 角色仍拒绝；非文本内容仍拒绝。原生权限请求取消；fs=false。`NO_RETRY_POLICY.maxRetries=0` 保留。通知只收集绑定 session 在 prompt 与 response 之间的正文；旧 config update 不覆盖之后的完整 setter response。
 - 模型聊天与任务面板独立，不共享 job/唤醒。真实 ctx.llm 两轮证据及全部回归见 [round2-impl.md](../../../results/round2-impl.md)。`scripts/round2-test.mjs --live` 现在经真实插件入口 `apply(ctx)` 装配（providers/resolveWorkspace/注册与卸载都由插件的 `ctx.effect` 完成），不再手工 `new AgyAcpAdapter`；`scripts/offline-test.mjs` 场景 30 另用注入的 `llm` 服务覆盖同一装配层，作为离线替代证据。
+- 只读刷新与探针边界：`scripts/catalog-live-probe.mjs` 输出的 `sharedDiff` 是**排除式过滤**结果（`isAuthOrConfigPath` 排除了 `brain/**`、`*.log`、`*.db-wal`、`*.db-shm` 等运行时产物），存在**假阴性**（被排除路径若被改写不会出现在 `sharedDiff` 中），不能单独作为「未写共享 gemini 目录」的证据；且默认 `AGY_GEMINI_DIR` 指向共享 `agy-data` 目录（探针内部虽复制到临时目录再启动 `agy`，默认配置下仍需组合证据）。「刷新端点只读」的正确证据组合为：`promptCallsDuringRefresh=0`（或探针 `promptCount=0`）+ `native-sessions.json` 内容与 `mtime` 前后未变 + 在临时 `gemini-dir` 副本上跑探针；`sharedDiff`/`sharedDiffRaw` 仅作辅助信号。
+- 纠偏轮实测（`scripts/correction-turn-live-probe.mjs`，`LIVE_CORRECTION_TEXT_MATCH`）：真实 `agy` ACP 已验证触发 `TOOL_BRIDGE_CORRECTION`，但 standalone 探针无法取得宿主会话落库文本（`adapter.lastResult.text` 与 `yield` 同源不能作为比对对象），故实测输出 `BLOCKED`。因 `BLOCKED` 与 `A` 同属不引入纠偏处置，当前保持「不计入已确认回复、不置全局 `dirty`、不强杀 `agy` 子进程」。
 - 中断轮次语义（实测）：`stopReason=cancelled` 的轮次会把 stopReason 与已收到的正文写入账本并把 `inFlight` 置空，不会留下 pending 卡住后续轮次；若该轮没有产出任何正文，下一轮会在派发前以 `AGY_ACP_UNSUPPORTED_HISTORY` 失败关闭（不重放、不重发），恢复方式是新建 DSH 会话；若取消前 CLI 已流出正文，则同一绑定可继续使用。
+
+## 桌面备用通道（Desktop Fallback v1）
+
+1. **定位与边界**：`desktop` 通道默认关闭（未配置时由默认值 `defaultDesktopConfig().enabled=false` 保证 opt-in；部署需在 `cordis.patch.yml` 手动加 `desktop` 段）；ACP 仍是唯一默认通道，且失败的 ACP 任务绝不自动切换到 `desktop`。显式选择 `transport="desktop"` 时不支持切换模型或思考强度（仅使用窗口当前设置），不支持原生文件附件（仅接受 `path_refs` 绝对路径引用块），也不接受 `conversation_id`。
+2. **窗口固定与校验链**：`antigravity_desktop_pin`（`action: 'pin' | 'clear' | 'status'`）及 Web RPC `desktopPin` / `desktopStatus` 复用 `DesktopChannel.discover` / `pin` / `statusSnapshot`，通过 `lib/uia-driver.ps1` 的只读 `probe_window` 执行六步身份校验：`pid` → 进程启动时间（±2s）→ 可执行文件白名单 → `hwnd` 顶层窗口校验 → 唯一 `http(s)` Document URI → 唯一侧栏/窗口 session link。候选 >1 且未指定 `hwnd` 时拒绝猜测，返回 `desktop_target_ambiguous` 与候选列表。
+3. **运行期 pin 落盘**：`desktop-target.json` 保存在 `dirname(config.stateFile)`（未配置时回落 `~/.dsh-antigravity-bridge/desktop-target.json`），采用临时文件 + `renameSync` 原子写（失败返回 `state_write_failed`）；文件缺失或 JSON/schema 损坏时记录 `logger.warn` 并降级为未配置。优先级：**运行期 pin > 静态 `config.desktop.target`**；`clearPin()` 后回退到静态配置。
+4. **错误码对照表（旧 → 新，全仓统一）**：
+
+| 旧码 / 原语义 | 归一新码 | 阶段 | 可否自动重试 |
+| --- | --- | --- | --- |
+| `unsupported_capability`（`web-remote` `enabled=false`） | `desktop_disabled` | 派发/探测前 | 否（需先启用配置） |
+| `uri_mismatch` / `target_mismatch` / `process_not_found` / `window_not_found` / `desktop_document_unverified` / `targetKey` 变化 | `desktop_target_changed`（附 `detail.driftField ∈ {pid, startedAt, hwnd, uri}`） | `probe_window` / `inspect` / `preflight` | 否（需重新固定窗口） |
+| `session_link_ambiguous` / `desktop_session_ambiguous` / `session_link_not_found` / `desktop_session_unverified` | `desktop_target_unverified` | `probe_window` / `inspect` | 否（需检查窗口/重新固定） |
+| `permission_prompt` / `awaiting_permission` | `desktop_permission_pending` | 观察期 | 否（需用户在窗口处理权限后查询） |
+| 保留码：`desktop_target_ambiguous` / `desktop_driver_missing` / `state_write_failed` / `unsupported_capability` | 原样保留 | 配置 / 能力边界 | 否 |
+
+5. **回执与能力边界**：`transport="desktop"` 时，回执 `effective` 固定为 `{ model: null, effort: null, profile: '', source: 'desktop_window_current', verified: false, summary: '实际：使用窗口当前设置（桌面通道不切换模型与思考强度）' }`。若在 `transport="desktop"` 下传入 `model` / `effort` / `conversation_id` / 原生 `attachments`，在 `inspect` 与 `dispatch` 之前即返回 `unsupported_capability`（驱动调用次数 = 0）。
+6. **三级验收矩阵**：
+   - **(a) Mock / 替身级（已完成）**：`AGUIA_FAKE_SCENARIO` + `fakeDriver` 验证 `probe_window`、`desktop-target.json` 原子写与损坏容错、工具/RPC 接线、错误码归一、`effective.source` 与能力边界、面板三态与错误可见。无法证明真实 Antigravity Electron 窗口的 UIA 树结构与焦点行为。
+   - **(b)(c) 真机联调（单轮已验证，其余待测）**：已验证单轮：pin / 键盘写入 / 读回 / 点 Send / 归属交付（2026-11-25 真机，回复「好的」）；多轮、权限卡、多窗口、模型切换仍未验证。
+7. **披露原文（Disclosure）**：
+   - **中文**：已验证单轮：pin / 键盘写入 / 读回 / 点 Send / 归属交付（2026-11-25 真机，回复「好的」）；多轮、权限卡、多窗口、模型切换仍未验证。
+   - **English**: Single-round live desktop flow has been verified: pin / keyboard input / readback / Send click / attribution delivery (2026-11-25 live run, reply "好的"); multi-turn, permission cards, multi-window selection, and model switching remain unverified.
+   - **窗口锁与解除语义**：`acceptance_unknown` 状态的桌面 job 会继续占用窗口锁（`state.locks[desktopLockKey]`）以防并发重发。若观察已结束且需要重新向同一窗口发送，可调用 `antigravity_cancel` 解除桥侧锁（置 `status='cancelled'`、`code='desktop_released_by_user'`），但**只解除桥侧占用，不代表应用侧没收到该轮，请人工确认**。
+   - **现场处置记录**：2026-11-25 真机联调曾出现 `acceptance_unknown` job 占用窗口锁导致无法重发，队长手工修改 `state.json` 解锁（备份 `state.json.bak-20261125-0020`）；随后由 `cancelJob` 的桌面释放路径补齐该缺口。
+8. **面板行为与排障**：
+   - 通道选择器呈三态：`enabled=false` 显示「桌面备用（未启用）」且禁用；`enabled=true && target=null` 显示「桌面备用（未配置窗口）」并提示 `desktop_target_not_configured`；已固定后可选「桌面（备用，仅显式选择）」。
+   - 选中 `desktop` 后，模型与思考强度下拉框置灰并显示「使用窗口当前设置」，隐藏原生文件上传区并保留 `path_refs`。
+   - 顶部 CLI 卡片提供「固定当前窗口」（出现 `desktop_target_changed`/`desktop_target_unverified` 漂移时切换为「重新固定窗口」）；多候选时提供 `hwnd` 候选列表选择；所有桌面错误通过 `data-testid="desktop-error"` + `data-error-code` 展示。
 
 ## 安装与配置
 

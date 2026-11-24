@@ -1,6 +1,6 @@
 {
   "name": "dsh-agy-bridge",
-  "version": "0.4.0",
+  "version": "0.5.2",
   "private": false,
   "type": "module",
   "description": "Dual-channel Antigravity bridge for DeepSeek Harness: task tools, a Web panel with DSH session attachments, and an independent native agy ACP model provider (no Google upstream proxy).",
@@ -29,6 +29,7 @@
   },
   "files": [
     "lib/**/*.js",
+    "lib/uia-driver.ps1",
     "client/**/*.js",
     "preset/**/*.js",
     "locale/*.json",
@@ -53,3 +54,4 @@
     "@deepseek-ai/dsh-llm": ">=0.2.1-rc.4"
   }
 }
+
