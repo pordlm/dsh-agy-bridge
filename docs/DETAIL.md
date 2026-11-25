@@ -216,6 +216,12 @@ profile 的启用/重载由队长部署；实现阶段只做构建与离线挂�
 - 纠偏轮实测（`scripts/correction-turn-live-probe.mjs`，`LIVE_CORRECTION_TEXT_MATCH`）：真实 `agy` ACP 已验证触发 `TOOL_BRIDGE_CORRECTION`，但 standalone 探针无法取得宿主会话落库文本（`adapter.lastResult.text` 与 `yield` 同源不能作为比对对象），故实测输出 `BLOCKED`。因 `BLOCKED` 与 `A` 同属不引入纠偏处置，当前保持「不计入已确认回复、不置全局 `dirty`、不强杀 `agy` 子进程」。
 - 中断轮次语义（实测）：`stopReason=cancelled` 的轮次会把 stopReason 与已收到的正文写入账本并把 `inFlight` 置空，不会留下 pending 卡住后续轮次；若该轮没有产出任何正文，下一轮会在派发前以 `AGY_ACP_UNSUPPORTED_HISTORY` 失败关闭（不重放、不重发），恢复方式是新建 DSH 会话；若取消前 CLI 已流出正文，则同一绑定可继续使用。
 
+### AGY_ACP_SYSTEM_CHANGED 自愈重基线
+
+- **触发条件**：已有绑定的连续多轮中检测到 `systemText` sha256 变化（`previous.systemHash !== systemHash`，含老账本缺失 `systemHash` 的情况）、末尾存在可发送的连续 `user` 段（非工具回复轮），且连续重基线次数 `consecutiveRebaselines <= MAX_CONSECUTIVE_REBASELINES`（`3`）。
+- **原子动作顺序**：与 `HISTORY_*` 五码共用同一重基线块——① 关闭并删除 `liveSessions` 连接 → ② 写入 `{ rebaseline: true, reasonCode: 'AGY_ACP_SYSTEM_CHANGED', ... }` 墓碑并将 `previous` 置 `null` → ③ 重读 `baselineEffort` → ④ 清空 `bridgeCalls` / `nativeActivity` → ⑤ 通过 `session/new` 重建 ACP 会话。
+- **代价与硬边界**：**前文不进入新会话（新会话只收到末尾连续 `user` 段）**；连续重基线超过 3 次抛出 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`（零 prompt、保留原绑定）；若末尾非 `user`（工具回复轮，或末尾无新增 user），仍硬拒抛出 `AGY_ACP_SYSTEM_CHANGED`，不新建会话、不发 prompt、不删绑定；纯 `assistant` 收尾更早由 `planRequest` 以 `AGY_ACP_UNSUPPORTED_HISTORY` 拦截，不会走到本分支。
+
 ## 桌面备用通道（Desktop Fallback v1）
 
 1. **定位与边界**：`desktop` 通道默认关闭（未配置时由默认值 `defaultDesktopConfig().enabled=false` 保证 opt-in；部署需在 `cordis.patch.yml` 手动加 `desktop` 段）；ACP 仍是唯一默认通道，且失败的 ACP 任务绝不自动切换到 `desktop`。显式选择 `transport="desktop"` 时不支持切换模型或思考强度（仅使用窗口当前设置），不支持原生文件附件（仅接受 `path_refs` 绝对路径引用块），也不接受 `conversation_id`。

@@ -123,7 +123,7 @@ Connects DeepSeek Harness to the local Antigravity CLI through the official `agy
 
 - **只发增量，绝不重放历史**：续聊时只发送最后一条 assistant 消息之后的连续 user 段，不会把整段历史重新发给 ACP。
 - **五类失配拆码与真重放硬拒**：历史校验将不匹配拆分为 `AGY_ACP_HISTORY_REPLAYED`（真重放/重复历史，清洁态零 prompt 硬拒）、`AGY_ACP_HISTORY_MULTI_ASSISTANT`（多 assistant 段）、`AGY_ACP_HISTORY_TOOL_ORDER`（工具顺序或未完成轮次）、`AGY_ACP_HISTORY_HASH_MISMATCH`（历史摘要失配）、`AGY_ACP_HISTORY_SHAPE`（历史形状不符）；既无绑定也无墓碑的多轮导入直接拒绝（`AGY_ACP_BINDING_UNKNOWN`）。
-- **重基线墓碑与上限**：调用 `antigravity_reset_session` 或触发受控重基线会写入墓碑 `{ rebaseline, resetAt, reasonCode, ... }`，并执行原子重基线（关闭并删除 `liveSessions` → `previous = null` → 重读 `baselineEffort` → 清空 `bridgeCalls`/`nativeActivity` → 通过 `session/new` 只发末尾连续 user 段）。连续重基线上限 `MAX_CONSECUTIVE_REBASELINES = 3`，超限抛出 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`。
+- **重基线墓碑与上限**：当 `system` 提示词变化或历史失配且末尾存在新增 `user` 输入时（以及调用 `antigravity_reset_session` 后），会写入墓碑 `{ rebaseline, resetAt, reasonCode, ... }` 并执行原子重基线（关闭并删除 `liveSessions` → `previous = null` → 重读 `baselineEffort` → 清空 `bridgeCalls`/`nativeActivity` → 通过 `session/new` 只发末尾连续 `user` 段，**前文不进入新会话**）。连续重基线上限 `MAX_CONSECUTIVE_REBASELINES = 3`，超限抛出 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`。
 
 ## 8. 活动链与思考链
 
@@ -141,7 +141,7 @@ Connects DeepSeek Harness to the local Antigravity CLI through the official `agy
 | `AGY_ACP_ACCEPTANCE_UNKNOWN` | prompt 已写入子进程后发生传输中断、子进程退出或插件重启，无法确认对端是否已受理。 | **禁止自动重发**。先确认对端会话实际状态，再由用户决定是否新建会话。 |
 | `AGY_ACP_SESSION_BUSY` | 同一 DSH 会话已有原生请求在途。 | 等待当前请求完成，勿并发发送。 |
 | `AGY_ACP_BINDING_UNKNOWN` | 既无有效绑定也无重基线墓碑的多轮历史导入。 | 新建 DSH 会话。 |
-| `AGY_ACP_SYSTEM_CHANGED` | 同一绑定的多轮会话中，system 提示词内容与首轮记录的摘要不一致。 | 保持 system 提示词不变，或新建 DSH 会话。 |
+| `AGY_ACP_SYSTEM_CHANGED` | 同一绑定的多轮会话中，system 提示词内容与首轮记录的摘要不一致。 | 可自愈：末尾有新增 `user` 输入时自动重基线（前文不进入新会话）；末尾非 `user` 或连续重基线超 3 次才报错。 |
 | `AGY_ACP_WORKSPACE_MISMATCH` | 绑定的工作区路径发生变化。 | 新建 DSH 会话，不跨项目沿用 ACP 上下文。 |
 | `AGY_ACP_RESET_BUSY` | 调用 `antigravity_reset_session` 时会话仍活跃或处于 `inFlight`。 | 等待当前轮次结束后再重置，本轮不可重发同一 prompt。 |
 | `AGY_ACP_HISTORY_REPLAYED` / `AGY_ACP_HISTORY_MULTI_ASSISTANT` / `AGY_ACP_HISTORY_TOOL_ORDER` / `AGY_ACP_HISTORY_HASH_MISMATCH` / `AGY_ACP_HISTORY_SHAPE` | 五类多轮历史失配（真重放、多 assistant、工具顺序、hash 失配、形状不符）；清洁态零 prompt 硬拒。 | 勿重放或篡改历史；必要时调用 `antigravity_reset_session` 或新建会话。 |
@@ -177,7 +177,7 @@ node scripts/ui-gate.mjs
 
 各脚本职责与当前基线：
 
-- `scripts/offline-test.mjs`：260 例离线回归测试，覆盖协议交互、多轮语义、权限策略、附件校验、思考隔离与状态恢复。
+- `scripts/offline-test.mjs`：262 例离线回归测试，覆盖协议交互、多轮语义、权限策略、附件校验、思考隔离与状态恢复。
 - `scripts/schema-check.mjs`：DSH 工具 JSON Schema 子集预检，校验全部 9 个已注册工具的参数与输出 schema。
 - `scripts/tool-call-bridge-test.mjs`：63 例工具桥专项测试，覆盖 `claim_task` 与 `update_task` 的翻译、拒绝对照与边界行为。
 - `scripts/desktop-test.mjs`：61 例桌面备用通道离线测试，覆盖 ACP 默认路径、opt-in、`pin`/`discover`、键盘注入与读回、无 `busy` 归属交付及 `cancel` 解锁。
@@ -190,7 +190,7 @@ node scripts/ui-gate.mjs
 
 ## 12. 版本与变更
 
-当前版本：**`0.5.2`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：**`0.5.3`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 13. License
 

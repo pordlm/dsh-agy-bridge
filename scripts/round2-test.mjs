@@ -12,9 +12,9 @@ import { apply } from '../lib/index.js'
 const temp = mkdtempSync(path.join(tmpdir(), 'agy-native-tests-'))
 const models = ['neon', 'argon', 'hydrogen', 'o-neon', 'o-argon', 'flash', 'opus', 'sonnet', 'oss']
 class Transport {
-  constructor({ restore = 'resume', system = true, fail = false, replay = false, closeError = null, resumeError = null, stopReason = 'end_turn' } = {}) {
+  constructor({ restore = 'resume', system = true, fail = false, replay = false, closeError = null, resumeError = null, stopReason = 'end_turn', sessionIdStart = 1 } = {}) {
     Object.assign(this, { restore, system, fail, replay, closeError, resumeError, stopReason })
-    this.requests = []; this.handlers = []; this.state = {}; this.counter = 0
+    this.requests = []; this.handlers = []; this.state = {}; this.nextSession = sessionIdStart
     // Like AcpStdioTransport: a fresh connection is not closed.
     this.closed = false
     // Peak listener counts observed since construction: the adapter must not
@@ -44,7 +44,7 @@ class Transport {
   async request(method, params, options) {
     this.requests.push({ method, params })
     if (method === 'initialize') return { agentCapabilities: { ...(this.restore === 'load' ? { loadSession: true } : {}), sessionCapabilities: { ...(this.restore === 'resume' ? { resume: {} } : {}), ...(this.system ? { systemPrompt: {} } : {}) } } }
-    if (method === 'session/new') { const sessionId = `session-${++this.counter}`; this.state[sessionId] = { model: 'neon', effort: 'high' }; return { sessionId, configOptions: this.options(sessionId) } }
+    if (method === 'session/new') { const sessionId = `session-${this.nextSession++}`; this.state[sessionId] = { model: 'neon', effort: 'high' }; return { sessionId, configOptions: this.options(sessionId) } }
     if (method === 'session/resume' || method === 'session/load') {
       if (this.resumeError) throw this.resumeError
       this.state[params.sessionId] ??= { model: 'neon', effort: 'high' }; if (this.replay) this.emit(params.sessionId, 'OLD REPLAY'); return { configOptions: this.options(params.sessionId) }
@@ -416,6 +416,189 @@ if (!process.argv.includes('--live')) {
     releasePrompt()
     const firstChunks = await firstTurn
     assert.equal(firstChunks.at(-1).reason.kind, 'stop')
+    adapter.dispose()
+  })
+
+  test('t31-a: AGY_ACP_SYSTEM_CHANGED with trailing user triggers atomic rebaseline and sends only trailing user', async () => {
+    const transports = []
+    const toolEventPayloads = []
+    const stateFile = path.join(temp, 't31-a-sessions.json')
+    let seq = 0
+    const adapter = new AgyAcpAdapter({
+      cwd: temp,
+      nativeStateFile: stateFile,
+      onToolEvents: (payload) => toolEventPayloads.push(payload),
+      transport: () => {
+        const t = new Transport({ sessionIdStart: ++seq })
+        transports.push(t)
+        return t
+      },
+    })
+    const sys = (text) => ({ role: 'system', content: [{ type: 'text', text }] })
+    const c1 = await collect(adapter, request([sys('sys-v1'), user('u1', 'earlier secret')]))
+    assert.equal(c1.at(-1).reason.kind, 'stop')
+    assert.equal(transports.length, 1)
+    const oldAcpSessionId = adapter.nativeSessions['dsh-1'].acpSessionId
+
+    const c2 = await collect(
+      adapter,
+      request([sys('sys-v2'), user('u1', 'earlier secret'), assistant('a1', 'answer'), user('u2', 'only-this-user')]),
+    )
+    assert.equal(c2.at(-1).reason.kind, 'stop')
+    assert.equal(transports[0].closed, true, 'old transport must be closed on SYSTEM_CHANGED rebaseline')
+    assert.equal(transports.length, 2, 'must open a fresh transport/session')
+    const newPrompts = prompts(transports[1])
+    assert.equal(newPrompts.length, 1)
+    assert.equal(newPrompts[0].params.prompt[0].text, 'only-this-user')
+    assert.ok(!newPrompts[0].params.prompt[0].text.includes('earlier secret'))
+    const act = adapter.getNativeActivity('dsh-1')
+    assert.ok(Array.isArray(act.rebaselines) && act.rebaselines.length === 1)
+    assert.equal(act.rebaselines[0].reason, 'AGY_ACP_SYSTEM_CHANGED')
+    assert.equal(act.rebaselines[0].oldAcpSessionId, oldAcpSessionId)
+    assert.equal(act.rebaselines[0].newAcpSessionId, 'session-2')
+    assert.notEqual(act.rebaselines[0].newAcpSessionId, oldAcpSessionId)
+    assert.equal(adapter.liveSessions.get('dsh-1').transport, transports[1])
+    assert.equal(act.rebaselines[0].promptChars, 'only-this-user'.length)
+    assert.equal(toolEventPayloads.at(-1)?.diagnostics?.rebaseline?.reason, 'AGY_ACP_SYSTEM_CHANGED')
+    adapter.dispose()
+  })
+
+  test('t31-b: AGY_ACP_SYSTEM_CHANGED with non-user tail (tool-reply) still hard-rejects with 0 session/new & 0 prompt and keeps binding', async () => {
+    const transports = []
+    const stateFile = path.join(temp, 't31-b-sessions.json')
+    const adapter = new AgyAcpAdapter({
+      cwd: temp,
+      acpToolBridge: true,
+      nativeStateFile: stateFile,
+      transport: () => {
+        const t = new Transport()
+        transports.push(t)
+        return t
+      },
+    })
+    const sys = (text) => ({ role: 'system', content: [{ type: 'text', text }] })
+    const claimTools = [{ name: 'claim_task', description: 'claim', parameters: { type: 'object', properties: {} } }]
+    await collect(adapter, request([sys('sys-v1'), user('u1', 'hi')], { tools: claimTools }))
+    const beforeSid = adapter.nativeSessions['dsh-1'].acpSessionId
+
+    await assert.rejects(
+      () =>
+        collect(
+          adapter,
+          request(
+            [
+              sys('sys-v2'),
+              user('u1', 'hi'),
+              assistant('a1', 'calling'),
+              {
+                id: 't1',
+                role: 'tool',
+                toolCallId: 'tc-1',
+                source: { kind: 'tool', callId: 'tc-1' },
+                isError: false,
+                content: [{ type: 'text', text: '{"ok":true}' }],
+              },
+            ],
+            { tools: claimTools },
+          ),
+        ),
+      (err) => err.code === 'AGY_ACP_SYSTEM_CHANGED' && /本次未重基线/.test(err.message) && !/自动重基线/.test(err.message),
+    )
+    assert.equal(transports.length, 1, 'no new transport/session/new on non-user tail')
+    assert.equal(prompts(transports[0]).length, 1, 'no extra prompt sent')
+    assert.equal(adapter.nativeSessions['dsh-1'].acpSessionId, beforeSid)
+    adapter.dispose()
+  })
+
+  test('t31-c: exceeding MAX_CONSECUTIVE_REBASELINES=3 on SYSTEM_CHANGED throws AGY_ACP_REBASELINE_LIMIT_EXCEEDED with 0 prompt', async () => {
+    const transports = []
+    const stateFile = path.join(temp, 't31-c-sessions.json')
+    const adapter = new AgyAcpAdapter({
+      cwd: temp,
+      nativeStateFile: stateFile,
+      transport: () => {
+        const t = new Transport()
+        transports.push(t)
+        return t
+      },
+    })
+    const sys = (text) => ({ role: 'system', content: [{ type: 'text', text }] })
+    await collect(adapter, request([sys('sys-0'), user('u0', 'turn0')]))
+    // 3 consecutive system-changed rebaselines (allowed)
+    for (let i = 1; i <= 3; i += 1) {
+      const msgs = [sys(`sys-${i}`), user('u0', 'turn0')]
+      for (let j = 1; j <= i; j += 1) {
+        msgs.push(assistant(`a${j - 1}`, 'answer'), user(`u${j}`, `turn${j}`))
+      }
+      const c = await collect(adapter, request(msgs))
+      assert.equal(c.at(-1).reason.kind, 'stop')
+    }
+    const promptsBefore = transports.reduce((acc, t) => acc + prompts(t).length, 0)
+    const sidBefore = adapter.nativeSessions['dsh-1'].acpSessionId
+    // 4th consecutive rebaseline must reject with AGY_ACP_REBASELINE_LIMIT_EXCEEDED
+    const msgs4 = [
+      sys('sys-4'),
+      user('u0', 'turn0'),
+      assistant('a0', 'answer'), user('u1', 'turn1'),
+      assistant('a1', 'answer'), user('u2', 'turn2'),
+      assistant('a2', 'answer'), user('u3', 'turn3'),
+      assistant('a3', 'answer'), user('u4', 'turn4'),
+    ]
+    await assert.rejects(
+      () => collect(adapter, request(msgs4)),
+      (err) => err.code === 'AGY_ACP_REBASELINE_LIMIT_EXCEEDED',
+    )
+    const promptsAfter = transports.reduce((acc, t) => acc + prompts(t).length, 0)
+    assert.equal(promptsAfter, promptsBefore)
+    assert.equal(adapter.nativeSessions['dsh-1'].acpSessionId, sidBefore)
+    adapter.dispose()
+  })
+
+  test('t31-d: unchanged system and matching history stay on normal incremental path with 0 rebaselines', async () => {
+    const transports = []
+    const adapter = new AgyAcpAdapter({
+      cwd: temp,
+      transport: () => {
+        const t = new Transport()
+        transports.push(t)
+        return t
+      },
+    })
+    const sys = { role: 'system', content: [{ type: 'text', text: 'stable-sys' }] }
+    await collect(adapter, request([sys, user('u1', 'one')]))
+    const c2 = await collect(adapter, request([sys, user('u1', 'one'), assistant('a1', 'answer'), user('u2', 'two')]))
+    assert.equal(c2.at(-1).reason.kind, 'stop')
+    assert.equal(transports.length, 1)
+    assert.equal(prompts(transports[0]).length, 2)
+    const act = adapter.getNativeActivity('dsh-1')
+    assert.equal(act.rebaselines.length, 0)
+    adapter.dispose()
+  })
+
+  test('t31-e: pure assistant tail is pre-blocked by planRequest with UNSUPPORTED_HISTORY', async () => {
+    const transports = []
+    const stateFile = path.join(temp, 't31-e-sessions.json')
+    const adapter = new AgyAcpAdapter({
+      cwd: temp,
+      nativeStateFile: stateFile,
+      transport: () => {
+        const t = new Transport()
+        transports.push(t)
+        return t
+      },
+    })
+    const sys = (text) => ({ role: 'system', content: [{ type: 'text', text }] })
+    await collect(adapter, request([sys('sys-v1'), user('u1', 'hi')]))
+    const beforeSid = adapter.nativeSessions['dsh-1'].acpSessionId
+
+    await assert.rejects(
+      () => collect(adapter, request([sys('sys-v2'), user('u1', 'hi'), assistant('a1', 'answer')])),
+      (err) => err.code === 'AGY_ACP_UNSUPPORTED_HISTORY',
+    )
+    assert.equal(transports.length, 1)
+    assert.equal(transports[0].requests.filter((r) => r.method === 'session/new').length, 1)
+    assert.equal(prompts(transports[0]).length, 1)
+    assert.equal(adapter.nativeSessions['dsh-1'].acpSessionId, beforeSid)
     adapter.dispose()
   })
   test.after(() => rmSync(temp, { recursive: true, force: true }))

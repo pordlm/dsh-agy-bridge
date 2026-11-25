@@ -1240,7 +1240,8 @@ test('T38: interruption (cancelled stopReason, abort signal, generator early exi
       return super.request(method, params, opts)
     }
   }
-  const adapter1 = new AgyAcpAdapter({ transport: () => new CancelTransport() })
+  const transports1 = []
+  const adapter1 = new AgyAcpAdapter({ transport: () => { const t = new CancelTransport(); transports1.push(t); return t } })
   await collect(adapter1, { sessionId: 's-t38a', model: 'gpt-5', reasoningEffort: 'medium', messages: [user('u1', 'u-1')] })
   const cancelled = await collect(adapter1, {
     sessionId: 's-t38a',
@@ -1252,17 +1253,25 @@ test('T38: interruption (cancelled stopReason, abort signal, generator early exi
   assert.equal(adapter1.nativeSessions['s-t38a'].dirty, true)
   assert.equal(adapter1.nativeSessions['s-t38a'].inFlight, null)
 
-  // Hard guards still apply while dirty:
-  await assert.rejects(
-    () => collect(adapter1, {
-      sessionId: 's-t38a',
-      model: 'gpt-5',
-      reasoningEffort: 'medium',
-      system: 'changed-system',
-      messages: [user('u1', 'u-1'), assistant('r1', 'a-1'), user('u3', 'u-3')],
-    }),
-    (err) => err instanceof AgyAcpError && err.code === 'AGY_ACP_SYSTEM_CHANGED',
-  )
+  // System change while dirty with trailing user auto-rebaselines cleanly:
+  const sysTransports = []
+  const adapterSys = new AgyAcpAdapter({ transport: () => { const t = new CancelTransport(); sysTransports.push(t); return t } })
+  await collect(adapterSys, { sessionId: 's-t38a-sys', model: 'gpt-5', reasoningEffort: 'medium', messages: [user('u-1', 'u1')] })
+  await collect(adapterSys, { sessionId: 's-t38a-sys', model: 'gpt-5', reasoningEffort: 'medium', messages: [user('u-1', 'u1'), assistant('r1', 'a-1'), user('u-2', 'u2')] })
+  const sysRebaselined = await collect(adapterSys, {
+    sessionId: 's-t38a-sys',
+    model: 'gpt-5',
+    reasoningEffort: 'medium',
+    system: 'changed-system',
+    messages: [user('u-1', 'u1'), assistant('r1', 'a-1'), user('u-3', 'u3')],
+  })
+  assert.equal(sysRebaselined.at(-1)?.reason?.kind, 'stop')
+  assert.equal(adapterSys.getNativeActivity('s-t38a-sys').rebaselines.at(-1)?.reason, 'AGY_ACP_SYSTEM_CHANGED')
+  const lastPrompt = sysTransports.at(-1)?.prompts?.at(-1)
+  assert.ok(lastPrompt && Array.isArray(lastPrompt.prompt) && lastPrompt.prompt.length > 0)
+  const lastPromptText = lastPrompt.prompt[0].text
+  assert.equal(typeof lastPromptText, 'string')
+  assert.ok(lastPromptText.endsWith('u-3') && !lastPromptText.includes('u-1') && !lastPromptText.includes('r1'))
   // Edited assistant while dirty with a new trailing user auto-rebaselines with HISTORY_HASH_MISMATCH and clears dirty:
   const rebaselinedDirty = await collect(adapter1, {
     sessionId: 's-t38a',

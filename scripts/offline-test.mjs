@@ -1950,6 +1950,116 @@ async function main() {
         unboundErr = error
       }
       check('unbound multi-turn without tombstone still throws AGY_ACP_BINDING_UNKNOWN', unboundErr?.code === 'AGY_ACP_BINDING_UNKNOWN', unboundErr?.code)
+
+      // SYSTEM_CHANGED with trailing user triggers atomic rebaseline; non-user (tool-reply) tail still hard-rejects.
+      const sysAgent = harness.agent('agent-sys-chg')
+      sysAgent.session = { id: 'sess-sys-chg' }
+      harness.agents.set('sess-sys-chg', sysAgent)
+      for await (const _chunk of adapter.stream({
+        sessionId: 'sess-sys-chg',
+        model,
+        system: 'sys-a',
+        messages: [{ role: 'user', id: 'su1', content: [{ type: 'text', text: 'first' }] }],
+      })) { /* drain */ }
+      const sysRebaseChunks = []
+      let sysRebaseErr = null
+      try {
+        for await (const chunk of adapter.stream({
+          sessionId: 'sess-sys-chg',
+          model,
+          system: 'sys-b',
+          messages: [
+            { role: 'user', id: 'su1', content: [{ type: 'text', text: 'first' }] },
+            { role: 'assistant', id: 'sa1', content: [{ type: 'text', text: 'MOCK-REPLY: first' }] },
+            { role: 'user', id: 'su2', content: [{ type: 'text', text: 'second' }] },
+          ],
+        })) {
+          sysRebaseChunks.push(chunk)
+        }
+      } catch (error) {
+        sysRebaseErr = error
+      }
+      const sysAct = adapter.getNativeActivity('sess-sys-chg')
+      check(
+        'SYSTEM_CHANGED with trailing user auto-rebaselines cleanly',
+        !sysRebaseErr && sysRebaseChunks.at(-1)?.reason?.kind === 'stop' && sysAct.rebaselines.some((r) => r.reason === 'AGY_ACP_SYSTEM_CHANGED'),
+        sysRebaseErr?.code ?? JSON.stringify({ kind: sysRebaseChunks.at(-1)?.reason?.kind, rebaselines: sysAct.rebaselines }),
+      )
+
+      const { createAdapter } = await import('../lib/model-adapter.js')
+      let stubNewCount = 0
+      let stubPromptCount = 0
+      const stubHandlers = []
+      const stubOpts = [
+        { id: 'choose-model', category: 'model', type: 'select', currentValue: 'm1', options: [{ group: 'all', options: [{ value: 'm1', name: 'm1' }] }] },
+        { id: 'reason', category: 'thought_level', type: 'select', currentValue: 'low', options: [{ value: 'low', name: 'low' }] },
+      ]
+      const stubTransport = {
+        closed: false,
+        start() {},
+        close() { this.closed = true },
+        onNotification(fn) { stubHandlers.push(fn); return () => {} },
+        onRequest() { return () => {} },
+        async request(method, params, opts) {
+          if (method === 'initialize') return { agentCapabilities: { sessionCapabilities: { resume: {} } } }
+          if (method === 'session/new') {
+            stubNewCount += 1
+            return { sessionId: `stub-s-${stubNewCount}`, configOptions: stubOpts }
+          }
+          if (method === 'session/resume') return { configOptions: stubOpts }
+          if (method === 'session/set_config_option') return { configOptions: stubOpts }
+          if (method === 'session/prompt') {
+            stubPromptCount += 1
+            for (const fn of stubHandlers) {
+              fn({ method: 'session/update', params: { sessionId: params.sessionId, update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'ok' } } } })
+            }
+            opts?.onResponse?.()
+            return { stopReason: 'end_turn' }
+          }
+          throw new Error(`unexpected ${method}`)
+        },
+      }
+      const bridgeDir = mkdtempSync(join(tmpdir(), 'ag-off-sys-'))
+      const toolAdapter = createAdapter({
+        cwd: bridgeDir,
+        acpToolBridge: true,
+        nativeStateFile: join(bridgeDir, 'native-sessions.json'),
+        transport: () => stubTransport,
+      })
+      const claimTools = [{ name: 'claim_task', description: 'claim', parameters: { type: 'object', properties: {} } }]
+      for await (const _chunk of toolAdapter.stream({
+        sessionId: 'sess-sys-tool',
+        model: 'm1',
+        system: 'sys-b',
+        tools: claimTools,
+        messages: [{ role: 'user', id: 'su1', content: [{ type: 'text', text: 'first' }] }],
+      })) { /* drain */ }
+      const beforeToolSid = toolAdapter.nativeSessions['sess-sys-tool']?.acpSessionId
+      const newBefore = stubNewCount
+      const promptBefore = stubPromptCount
+      let sysNonUserErr = null
+      try {
+        for await (const _chunk of toolAdapter.stream({
+          sessionId: 'sess-sys-tool',
+          model: 'm1',
+          system: 'sys-c',
+          tools: claimTools,
+          messages: [
+            { role: 'user', id: 'su1', content: [{ type: 'text', text: 'first' }] },
+            { role: 'assistant', id: 'sa1', content: [{ type: 'text', text: 'calling' }] },
+            { role: 'tool', id: 'st1', toolCallId: 'tc-1', source: { kind: 'tool', callId: 'tc-1' }, isError: false, content: [{ type: 'text', text: '{"ok":true}' }] },
+          ],
+        })) { /* drain */ }
+      } catch (error) {
+        sysNonUserErr = error
+      }
+      toolAdapter.dispose()
+      rmSync(bridgeDir, { recursive: true, force: true })
+      check(
+        'SYSTEM_CHANGED with non-user (tool-reply) tail still throws AGY_ACP_SYSTEM_CHANGED with 0 new/prompt',
+        sysNonUserErr?.code === 'AGY_ACP_SYSTEM_CHANGED' && stubNewCount === newBefore && stubPromptCount === promptBefore && toolAdapter.nativeSessions['sess-sys-tool']?.acpSessionId === beforeToolSid,
+        sysNonUserErr?.code ?? sysNonUserErr?.message ?? '',
+      )
     } finally {
       await harness.close()
     }

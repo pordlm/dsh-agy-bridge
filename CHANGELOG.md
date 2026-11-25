@@ -5,6 +5,11 @@ All notable changes to `dsh-agy-bridge` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-11-25
+
+### Changed
+- **`AGY_ACP_SYSTEM_CHANGED` 自愈重基线**：`systemText` 摘要变化且末尾存在新增连续 `user` 输入时，复用原子重基线机制自愈重建会话（新会话只收到末尾连续 `user` 段，**前文不进入新会话**）；连续重基线超过 `MAX_CONSECUTIVE_REBASELINES = 3` 抛出 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`；工具回复轮等末尾无新增 user 的形状仍硬拒并保留原绑定（纯 `assistant` 收尾由 `planRequest` 前置拦截为 `UNSUPPORTED_HISTORY`）。
+
 ## [0.5.2] - 2026-11-25
 
 ### Added
