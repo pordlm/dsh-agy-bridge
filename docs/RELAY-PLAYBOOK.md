@@ -35,7 +35,7 @@
 | `AGY_ACP_UNSUPPORTED_TOOLS` | 纯文本 ACP 通道不允许携带协作/任务工具 | 改用零工具预设或移除不兼容工具后再新建请求 |
 | `AGY_ACP_ACCEPTANCE_UNKNOWN` | 上轮受理状态未确认（`inFlight` 未落盘确认） | **禁止自动重发**；先排查会话状态或新建会话 |
 | `AGY_ACP_BINDING_UNKNOWN` | 多轮历史没有原生 ACP 会话绑定 | 不重放历史，请新建会话 |
-| `AGY_ACP_SYSTEM_CHANGED` | `system` 提示词相对已绑定会话发生变化 | 需新建会话，不要在旧会话继续派发 |
+| `AGY_ACP_SYSTEM_CHANGED` | `system` 提示词相对已绑定会话发生变化 | 自动原子重基线，仅发送末尾连续 user 段（前文不进入新会话）；末尾非 user 时硬拒且零 prompt；连续 3 次报 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`；也可手动 `antigravity_reset_session`。 |
 
 ---
 

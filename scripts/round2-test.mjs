@@ -601,7 +601,21 @@ if (!process.argv.includes('--live')) {
     assert.equal(adapter.nativeSessions['dsh-1'].acpSessionId, beforeSid)
     adapter.dispose()
   })
-  test.after(() => rmSync(temp, { recursive: true, force: true }))
+  test.after(async () => {
+    const retryCodes = new Set(['EBUSY', 'EPERM'])
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        rmSync(temp, { recursive: true, force: true })
+        return
+      } catch (err) {
+        if (!retryCodes.has(err?.code) || attempt === 2) {
+          console.warn(`[round2-test] offline temp cleanup failed (${err?.code || err?.message}): ${temp}`)
+          return
+        }
+        await new Promise((r) => setTimeout(r, 200))
+      }
+    }
+  })
 } else {
   // Authorized live harness: login data copied read-only to TEMP; results contain evidence only.
   const root = path.resolve('D:/lnu-seat'); const out = path.join(root, 'antigravity-bridge/results/round2-verify.json')
@@ -612,6 +626,7 @@ if (!process.argv.includes('--live')) {
   const require = createRequire('D:/dsh-data/versions/0.2.2-rc.5/node_modules/@deepseek-ai/dsh/package.json')
   const load = async (name) => import(pathToFileURL(require.resolve(name)).href)
   let ctx, adapter
+  const createdTransports = []
   try {
     const { Context } = await load('@deepseek-ai/cordis'); ctx = new Context(); const llm = await load('@deepseek-ai/dsh-llm'); ctx.plugin(llm.default ?? llm, {}); await ctx.lifecycle?.ready?.()
     // cordis materializes the llm service on its own async boundary: right after
@@ -636,7 +651,7 @@ if (!process.argv.includes('--live')) {
       stateFile: path.join(stateDir, 'state.json'),
       modelProvider: true,
       transport: () => {
-        const t = new AcpStdioTransport({ cwd: root, agyExecutable: path.join(root, 'antigravity-bridge/desktop-staging/verification/official-cli/agy.exe'), agyArgs: ['acp', '--gemini-dir', auth] }); const request = t.request.bind(t)
+        const t = new AcpStdioTransport({ cwd: root, agyExecutable: path.join(root, 'antigravity-bridge/desktop-staging/verification/official-cli/agy.exe'), agyArgs: ['acp', '--gemini-dir', auth] }); createdTransports.push(t); const request = t.request.bind(t)
         t.request = async (method, params, options) => { evidence.requests.push({ method, params }); const result = await request(method, params, options); if (method !== 'session/prompt') evidence.responses.push({ method, result }); return result }; return t
       },
     })
@@ -653,10 +668,44 @@ if (!process.argv.includes('--live')) {
     const answer = await turn([first]); assert.match(answer, /CEDAR-7319/); const second = user('live-u2', 'What nonce did I ask you to remember? Reply only that nonce. Do not use any tools.'); const answer2 = await turn([first, { ...assistant('live-a1', answer), source: { kind: 'model', provider: PROVIDER_ID, model: opts.model } }, second])
     const sent = evidence.requests.filter((r) => r.method === 'session/prompt'); assert.equal(sent.length, 2); assert.equal(sent[0].params.sessionId, sent[1].params.sessionId); assert.deepEqual(sent[1].params.prompt, [{ type: 'text', text: second.content[0].text }]); assert.match(answer2, /CEDAR-7319/)
     evidence.nativeSessionId = sent[0].params.sessionId; evidence.ledger = JSON.parse(readFileSync(evidence.nativeStateFile)); evidence.passed = true
-  } catch (error) { evidence.error = { code: error.code, message: error.message, stack: error.stack }; process.exitCode = 1 }
+  } catch (error) { evidence.passed = false; evidence.error = { code: error.code, message: error.message, stack: error.stack }; process.exitCode = 1 }
   finally {
-    adapter?.dispose(); await ctx?.dispose?.(); evidence.sharedAfter = snapshot(); const before = new Map(evidence.sharedBefore.map((i) => [i.path, i])); const after = new Map(evidence.sharedAfter.map((i) => [i.path, i])); evidence.sharedDiff = { added: evidence.sharedAfter.filter((i) => !before.has(i.path)), removed: evidence.sharedBefore.filter((i) => !after.has(i.path)), changed: evidence.sharedAfter.filter((i) => before.has(i.path) && (i.size !== before.get(i.path).size || i.mtimeMs !== before.get(i.path).mtimeMs)) }; evidence.finishedAt = new Date().toISOString(); evidence.tempDirectory = temp
-    rmSync(temp, { recursive: true, force: true }); evidence.tempDeleted = !existsSync(temp)
-    const prior = JSON.parse(readFileSync(out)); if (!Array.isArray(prior)) throw Error('Expected existing verification array'); prior.push({ kind: 'nativeRound2', evidence }); writeFileSync(out, JSON.stringify(prior, null, 2)); console.log(JSON.stringify({ passed: evidence.passed, error: evidence.error, assembledBy: evidence.assembledBy, providers: evidence.providers, llmRegistered: evidence.llmRegistered, models: evidence.catalog?.length, nativeSessionId: evidence.nativeSessionId, turns: evidence.turns, sharedCount: [evidence.sharedBefore.length, evidence.sharedAfter.length], sharedDiff: evidence.sharedDiff, tempDeleted: evidence.tempDeleted }, null, 2))
+    await adapter?.dispose?.(); await ctx?.dispose?.()
+    await Promise.all(createdTransports.map((t) => Promise.resolve(t.close?.()).catch(() => {})))
+    evidence.sharedAfter = snapshot(); const before = new Map(evidence.sharedBefore.map((i) => [i.path, i])); const after = new Map(evidence.sharedAfter.map((i) => [i.path, i])); evidence.sharedDiff = { added: evidence.sharedAfter.filter((i) => !before.has(i.path)), removed: evidence.sharedBefore.filter((i) => !after.has(i.path)), changed: evidence.sharedAfter.filter((i) => before.has(i.path) && (i.size !== before.get(i.path).size || i.mtimeMs !== before.get(i.path).mtimeMs)) }; evidence.finishedAt = new Date().toISOString(); evidence.tempDirectory = temp; evidence.tempDeleted = false; evidence.cleanupError = null
+    const prior = JSON.parse(readFileSync(out)); if (!Array.isArray(prior)) throw Error('Expected existing verification array')
+    const entryIndex = prior.length
+    prior.push({ kind: 'nativeRound2', evidence })
+    writeFileSync(out, JSON.stringify(prior, null, 2))
+    const retryCodes = new Set(['EBUSY', 'EPERM', 'ENOTEMPTY', 'ENOTFOUND'])
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      try {
+        rmSync(temp, { recursive: true, force: true })
+        evidence.cleanupError = null
+        break
+      } catch (cleanupErr) {
+        if (!retryCodes.has(cleanupErr?.code) || attempt === 19) {
+          let residualPids = []
+          try {
+            const { execFileSync } = await import('node:child_process')
+            const outPids = execFileSync(
+              'pwsh',
+              ['-NoProfile', '-Command', `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*${temp.replace(/'/g, "''")}*' } | Select-Object -ExpandProperty ProcessId`],
+              { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+            )
+            residualPids = outPids.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+          } catch {}
+          evidence.cleanupError = residualPids.length > 0
+            ? `${cleanupErr?.code || cleanupErr?.message || cleanupErr} (residualPids=${residualPids.join(',')})`
+            : String(cleanupErr?.code || cleanupErr?.message || cleanupErr)
+          break
+        }
+        await new Promise((r) => setTimeout(r, 250))
+      }
+    }
+    evidence.tempDeleted = evidence.cleanupError === null && !existsSync(temp)
+    prior[entryIndex] = { kind: 'nativeRound2', evidence }
+    writeFileSync(out, JSON.stringify(prior, null, 2))
+    console.log(JSON.stringify({ passed: evidence.passed, error: evidence.error, assembledBy: evidence.assembledBy, providers: evidence.providers, llmRegistered: evidence.llmRegistered, models: evidence.catalog?.length, nativeSessionId: evidence.nativeSessionId, turns: evidence.turns, sharedCount: [evidence.sharedBefore.length, evidence.sharedAfter.length], sharedDiff: evidence.sharedDiff, tempDeleted: evidence.tempDeleted, cleanupError: evidence.cleanupError }, null, 2))
   }
 }

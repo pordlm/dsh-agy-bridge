@@ -3,6 +3,12 @@ node_modules/
 
 # 运行期状态与本地产物
 state.json
+native-sessions.json
+desktop-target.json
+machine.json
+*.foreign-*.json
+*.corrupt-*
+*.tmp
 *.log
 tmp-*/
 tmp*/

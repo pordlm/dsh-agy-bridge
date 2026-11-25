@@ -103,6 +103,7 @@ Connects DeepSeek Harness to the local Antigravity CLI through the official `agy
   - `enabled=false`：显示「桌面备用（未启用）」且禁用；
   - `enabled=true` 且无 pin/target：显示「桌面备用（未配置窗口）」（`desktop_target_not_configured`），禁止派发；
   - 已固定目标后：可选「桌面（备用，仅显式选择）」。
+- **机器身份隔离与面板探测**：`state.json`、`native-sessions.json`、`desktop-target.json` 均绑定 `<stateDir>/machine.json` 本机 UUID，外来机器文件只改名隔离（`*.foreign-*`）绝不删除；CLI 状态卡按钮行提供只读「识别本地 Antigravity」按钮（`desktopDetect`），不写盘、不抢焦点。
 - **身份校验链**：`pid` → 进程启动时间（`±2s`）→ 可执行文件白名单 → `hwnd` 顶层窗口 → 唯一 `http(s)` Document URI → 唯一侧栏/窗口 session link（忽略 query/fragment 对比）。多候选且未指定 `hwnd` 时拒绝猜测，返回 `desktop_target_ambiguous` 与候选列表。
 - **能力边界**：不支持切换模型与思考强度（使用窗口当前设置，回执 `effective.source='desktop_window_current'`）；不支持原生附件，仅接受 `path_refs` 绝对路径引用块；不接受 `conversation_id`。在 `transport="desktop"` 下传入 `model`、`effort`、`conversation_id` 或原生 `attachments` 时，在 `inspect` 与 `dispatch` 之前即返回 `unsupported_capability`（驱动调用 0 次）。
 - **错误码归一**：统一使用 `desktop_disabled`、`desktop_target_changed`（含 `detail.driftField`）、`desktop_target_unverified`、`desktop_permission_pending`；保留 `desktop_target_ambiguous`、`desktop_driver_missing`、`state_write_failed`。
@@ -190,7 +191,7 @@ node scripts/ui-gate.mjs
 
 ## 12. 版本与变更
 
-当前版本：**`0.5.3`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：**`0.5.4`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 13. License
 

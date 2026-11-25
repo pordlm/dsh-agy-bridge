@@ -5,6 +5,16 @@ All notable changes to `dsh-agy-bridge` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-11-25
+
+### Added
+- **机器身份与状态隔离**：新增 `lib/machine-identity.js`（`<stateDir>/machine.json` 原子生成与损坏隔离），接入 `state.json`、`native-sessions.json`、`desktop-target.json` 三处状态，外来 `machineId` 文件只改名隔离（`*.foreign-*`）不删除，legacy 文件自动补写。
+- **便携包白名单构建**：新增 `scripts/build-portable.mjs`（支持 `--verify-only` 与输出 `dist/dsh-agy-bridge-<version>.zip`），严格按白名单打包并拒绝运行期状态、密钥与数据库文件。
+- **桌面只读探测按钮**：`lib/web-remote.js` 新增 `desktopDetect` 只读 RPC，`client/panel.js` CLI 状态卡新增「识别本地 Antigravity」按钮与中英 locale 文案。
+
+### Fixed
+- **live 收尾 EBUSY**：`AcpStdioTransport.close()` 改为异步等待子进程退出（3s 超时强杀/Windows `taskkill /T /F` 兜底），并在 `adapter.dispose()` / `ctx.effect` 中透传等待。
+
 ## [0.5.3] - 2026-11-25
 
 ### Changed

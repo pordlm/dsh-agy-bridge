@@ -222,6 +222,15 @@ profile 的启用/重载由队长部署；实现阶段只做构建与离线挂�
 - **原子动作顺序**：与 `HISTORY_*` 五码共用同一重基线块——① 关闭并删除 `liveSessions` 连接 → ② 写入 `{ rebaseline: true, reasonCode: 'AGY_ACP_SYSTEM_CHANGED', ... }` 墓碑并将 `previous` 置 `null` → ③ 重读 `baselineEffort` → ④ 清空 `bridgeCalls` / `nativeActivity` → ⑤ 通过 `session/new` 重建 ACP 会话。
 - **代价与硬边界**：**前文不进入新会话（新会话只收到末尾连续 `user` 段）**；连续重基线超过 3 次抛出 `AGY_ACP_REBASELINE_LIMIT_EXCEEDED`（零 prompt、保留原绑定）；若末尾非 `user`（工具回复轮，或末尾无新增 user），仍硬拒抛出 `AGY_ACP_SYSTEM_CHANGED`，不新建会话、不发 prompt、不删绑定；纯 `assistant` 收尾更早由 `planRequest` 以 `AGY_ACP_UNSUPPORTED_HISTORY` 拦截，不会走到本分支。
 
+### 机器身份与状态隔离
+
+- **机器身份文件**：`<stateDir>/machine.json`（`stateDir = dirname(config.stateFile)`；未配置 `stateFile` 时回落到 `process.env.DSH_HOME/.dsh-agy-bridge` 或 `homedir()/.dsh-agy-bridge`），内容为 `{ id: "<uuid-v4>", createdAt: "<ISO>" }`，采用临时文件 + `renameSync` 原子写；若 `machine.json` 损坏则只改名为 `machine.json.corrupt-<yyyyMMddHHmmss>`（绝不删除）后重建。
+- **外来状态隔离命名与不可删除**：`state.json`、`native-sessions.json`、`desktop-target.json` 读取时若发现 `machineId` 与本机不一致，立即调用 `quarantineFile` 改名为 `<basename>.foreign-<foreignId前8位>-<yyyyMMddHHmmss><ext>`（绝不删除，遇到 `EBUSY`/`EPERM` 重试 3×200ms），记录 `state_foreign_machine_quarantined`（仅含文件名、前 8 位与新文件名，不打印文件内容），并以空状态/未配置启动。
+- **legacy 升级**：无 `machineId` 的既有旧状态文件按原样正常加载，下一次写入时自动补写本机 `machineId`。
+- **便携包白名单与隐私边界**：`scripts/build-portable.mjs` 仅打包 `lib/**`、`client/**`、`locale/**`、`preset/**`、`docs/**`、`CHANGELOG.md`、`README.md`、`LICENSE`（若存在）、`icon.svg`、`cordis.patch.yml`、`package.json`；任何运行期状态/身份/密钥/数据库/日志（`state.json`、`native-sessions.json`、`desktop-target.json`、`machine.json`、`*.foreign-*.json`、`*.corrupt-*`、`*.bak*`、`*.log`、`tmp-*`、`results/**`、`node_modules`、`.env`、`*.pem`、`*.key`、`*.sqlite`、`*.db`）均被拒绝打包，确保便携包**不含任何运行期状态或个人数据**。
+- **桌面探测只读**：面板「识别本地 Antigravity」按钮调用 `desktopDetect` RPC（内部 `action: 'inspect'` 不带 `target`），仅返回候选标题、`pid`、`hwnd`、`documentUriCount` 与 `isForeground`，绝不写入 `desktop-target.json`、不固定窗口、不抢焦点。
+- **已知限制（catalog 缓存）**：`native-sessions.json.catalog.json` 为非敏感共享模型缓存，含公开模型目录、无会话/绑定/路径，故不绑 `machineId`（换机失效换不来隐私收益）。
+
 ## 桌面备用通道（Desktop Fallback v1）
 
 1. **定位与边界**：`desktop` 通道默认关闭（未配置时由默认值 `defaultDesktopConfig().enabled=false` 保证 opt-in；部署需在 `cordis.patch.yml` 手动加 `desktop` 段）；ACP 仍是唯一默认通道，且失败的 ACP 任务绝不自动切换到 `desktop`。显式选择 `transport="desktop"` 时不支持切换模型或思考强度（仅使用窗口当前设置），不支持原生文件附件（仅接受 `path_refs` 绝对路径引用块），也不接受 `conversation_id`。

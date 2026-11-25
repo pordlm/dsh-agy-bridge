@@ -77,5 +77,13 @@
     "empty": "本会话暂无原生工具活动",
     "truncated": "仅保留最近部分活动记录",
     "localDerivedNote": "更新时间、来源与截断标记由插件本地补充，非底层原始字段。"
+  },
+  "desktop": {
+    "detect": "识别本地 Antigravity",
+    "detecting": "正在识别…",
+    "detectDisabled": "桌面通道未启用",
+    "detectNone": "未找到：{reason}",
+    "detectFound": "找到 {count} 个候选：{summary}",
+    "detectFailed": "识别失败（错误码：{code}）"
   }
 }

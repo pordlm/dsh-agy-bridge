@@ -63,6 +63,7 @@ export function createUnavailableBridge(reason = 'remote_unavailable') {
     refreshModels: reject,
     desktopStatus: reject,
     desktopPin: reject,
+    desktopDetect: reject,
   };
 }
 
@@ -192,6 +193,7 @@ export function createRemoteBridge(source, namespace = 'antigravityBridge') {
     refreshModels: (options) => invoke('refreshModels', [], options),
     desktopStatus: (payload, options) => invoke('desktopStatus', [payload || {}], options),
     desktopPin: (payload, options) => invoke('desktopPin', [payload || {}], options),
+    desktopDetect: (payload, options) => invoke('desktopDetect', [payload || {}], options),
   };
 }
 
@@ -282,6 +284,9 @@ export function createPanelController(options = {}) {
     modelsStale: false,
     modelsRefreshError: null,
     pinningDesktop: false,
+    detectingDesktop: false,
+    desktopDetectResult: null,
+    desktopDetectError: null,
     desktopPinTarget: null,
     desktopPinnedAt: '',
     desktopCandidates: [],
@@ -1281,6 +1286,46 @@ export function createPanelController(options = {}) {
     }
   }
 
+  async function detectDesktopWindows() {
+    if (disposed) return { ok: false, code: 'disposed' };
+    if (!boundSession) return { ok: false, code: 'session_unknown' };
+    if (!bridgeUp() || typeof bridge.desktopDetect !== 'function') {
+      const err = { code: 'remote_unavailable', message: 'remote_unavailable' };
+      patch({ desktopDetectError: err, desktopDetectResult: null });
+      return { ok: false, ...err };
+    }
+    if (state.detectingDesktop) return { ok: false, code: 'busy' };
+    const generation = sessionGeneration;
+    patch({ detectingDesktop: true, desktopDetectError: null });
+    try {
+      const result = await bridge.desktopDetect({}, { session: boundSession });
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      if (result && result.ok === true) {
+        const detectResult = {
+          enabled: result.enabled !== false,
+          reason: result.reason || '',
+          candidates: Array.isArray(result.candidates) ? result.candidates : [],
+        };
+        patch({
+          detectingDesktop: false,
+          desktopDetectResult: detectResult,
+          desktopDetectError: null,
+        });
+        return result;
+      }
+      const code = (result && typeof result.code === 'string' && result.code) || 'desktop_target_unverified';
+      const err = { code, message: (result && result.message) || code };
+      patch({ detectingDesktop: false, desktopDetectError: err, desktopDetectResult: null });
+      return { ok: false, ...err };
+    } catch (error) {
+      if (disposed || generation !== sessionGeneration) return { ok: false, code: 'stale_session' };
+      const code = readErrorCode(error) || 'desktop_target_unverified';
+      const err = { code, message: String((error && error.message) || error || code) };
+      patch({ detectingDesktop: false, desktopDetectError: err, desktopDetectResult: null });
+      return { ok: false, ...err };
+    }
+  }
+
   function subscribe(listener) {
     listeners.add(listener);
     return () => listeners.delete(listener);
@@ -1306,6 +1351,7 @@ export function createPanelController(options = {}) {
     refreshAuthStatus,
     refreshModels,
     pinDesktopWindow,
+    detectDesktopWindows,
     setDesktopSelectedHwnd,
     loginCli,
     setSession,
@@ -2376,7 +2422,38 @@ export function createCliSectionComponent({ React, translate: t = createTranslat
                   : t('desktop.pinWindow'),
             )
           : null,
+        props && typeof props.onDetectDesktop === 'function'
+          ? h(
+              'button',
+              {
+                type: 'button',
+                'data-action': 'detect-desktop',
+                disabled: Boolean(props.detectingDesktop) || !bridgeAvailable || props.canDetectDesktop === false,
+                onClick: () => void props.onDetectDesktop(),
+              },
+              props.detectingDesktop ? t('desktop.detecting') : t('desktop.detect'),
+            )
+          : null,
       ),
+      props && props.desktopDetectResult
+        ? props.desktopDetectResult.enabled === false
+          ? h('p', { className: 'antigravity-cli-status__notice', 'data-desktop-detect-result': 'disabled' }, t('desktop.detectDisabled'))
+          : props.desktopDetectResult.candidates.length === 0
+            ? h('p', { className: 'antigravity-cli-status__notice', 'data-desktop-detect-result': 'empty' }, t('desktop.detectNone', { reason: props.desktopDetectResult.reason || 'none' }))
+            : h(
+                'p',
+                { className: 'antigravity-cli-status__notice', 'data-desktop-detect-result': 'found' },
+                t('desktop.detectFound', {
+                  count: props.desktopDetectResult.candidates.length,
+                  summary: props.desktopDetectResult.candidates
+                    .map((c) => `${c.title || '(untitled)'} (pid=${c.pid}, hwnd=${c.hwnd})`)
+                    .join('; '),
+                }),
+              )
+        : null,
+      props && props.desktopDetectError
+        ? h('p', { className: 'antigravity-cli-status__error', role: 'alert', 'data-desktop-detect-error': props.desktopDetectError.code }, t('desktop.detectFailed', { code: props.desktopDetectError.code }))
+        : null,
       flowHint,
       state.message
         ? h('p', { className: 'antigravity-cli-status__notice', 'data-cli-message': '' }, t('cli.bridgeMessage', { detail: state.message }))
@@ -2500,6 +2577,11 @@ export function createSidebarPage({ React, translate: t, Panel, retainSession, b
           onPinDesktop: () => panelController.pinDesktopWindow(),
           pinningDesktop: panelState.pinningDesktop,
           canPinDesktop: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          onDetectDesktop: () => panelController.detectDesktopWindows(),
+          detectingDesktop: panelState.detectingDesktop,
+          canDetectDesktop: Boolean(selectedScope && !selectedScope.failed && panelState.bridgeAvailable),
+          desktopDetectResult: panelState.desktopDetectResult,
+          desktopDetectError: panelState.desktopDetectError,
           desktopNeedsRepin: Boolean(
             panelState.desktopError &&
               (panelState.desktopError.code === 'desktop_target_changed' ||

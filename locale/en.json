@@ -77,5 +77,13 @@
     "empty": "No native tool activity in this session",
     "truncated": "Showing most recent activity entries",
     "localDerivedNote": "Timestamps, sources, and truncation flags are added locally by this plugin rather than reported directly."
+  },
+  "desktop": {
+    "detect": "Detect local Antigravity",
+    "detecting": "Detecting…",
+    "detectDisabled": "Desktop channel disabled",
+    "detectNone": "Not found: {reason}",
+    "detectFound": "Found {count} candidate(s): {summary}",
+    "detectFailed": "Detection failed (code: {code})"
   }
 }
