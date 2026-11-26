@@ -1,4 +1,4 @@
-# Antigravity 中继使用手册（RELAY GUIDE，0.5.4）
+# Antigravity 中继使用手册（RELAY GUIDE，0.5.5）
 
 这是一份**自包含**的手册：给新会话里的操作者（人或 AI）直接照做，不必先读源码。
 实现细节见 [DETAIL.md](DETAIL.md)，精简派单口径见 [RELAY-PLAYBOOK.md](RELAY-PLAYBOOK.md)（内容与本手册第 3～6 节一致）。
@@ -132,7 +132,7 @@ antigravity_desktop_pin({ action: 'pin' })      # 校验后固定（pid→启动
 antigravity_send({ transport: 'desktop', message: '...', path_refs: [...] })
 ```
 
-限制（0.5.4 现状）：
+限制（0.5.5 现状）：
 - 不支持 `model`/`effort`、不支持原生附件；只认 `path_refs`。
 - 真机**只验证了单轮**：pin → 键盘注入 → 读回 → 点 Send → 归属交付（回复「好的」）；多轮、权限卡、多窗口、模型切换未验证。
 - busy 状态应用不暴露，归属靠「新 user 回合锚点 + 其后 assistant 回合 + 两次空闲快照一致」的启发式。
@@ -181,11 +181,11 @@ node scripts/desktop-test.mjs               # 61
 node scripts/catalog-test.mjs               # PASS
 node scripts/wake-member-test.mjs           # 12
 node scripts/thought-test.mjs               # 8
-node scripts/schema-test.mjs                # 9
-node scripts/build-portable.mjs --verify-only  # ENTRIES=28 VERSION=0.5.4
+node scripts/schema-check.mjs               # 9
+node scripts/build-portable.mjs --verify-only  # ENTRIES=29 VERSION=0.5.5
 ```
 
-打包：`node scripts/build-portable.mjs` → `dist/dsh-agy-bridge-0.5.4.zip`（28 条目，含 LICENSE / `lib/uia-driver.ps1` / CHANGELOG）。
+打包：`node scripts/build-portable.mjs` → `dist/dsh-agy-bridge-0.5.5.zip`（29 条目，含 LICENSE / `lib/uia-driver.ps1` / CHANGELOG）。
 
 ---
 
@@ -203,9 +203,8 @@ node scripts/build-portable.mjs --verify-only  # ENTRIES=28 VERSION=0.5.4
 
 ## 12. 版本与索引
 
-- 当前版本 **0.5.4**；commit `761db7a`；tag `v0.5.4`（tag 对象 `a24ad09`）。
-- Release：https://github.com/pordlm/dsh-agy-bridge/releases/tag/v0.5.4
-- 便携包：`dsh-agy-bridge-0.5.4.zip`（255,692 B，SHA256 `9b9b4bf996ac72586551579d8be9110960ecfab6f0310bdae49759c0fb1a5ab0`）
+- 当前版本 **0.5.5**：tag `v0.5.5`、Release https://github.com/pordlm/dsh-agy-bridge/releases/tag/v0.5.5 、便携包 `dsh-agy-bridge-0.5.5.zip`（29 条目；文件名与 SHA256 见 Release 说明，便于校验下载件）。
+- 上一个发布 **v0.5.4**：commit `761db7a`、tag 对象 `a24ad09`、`dsh-agy-bridge-0.5.4.zip`（255,692 B，SHA256 `9b9b4bf996ac72586551579d8be9110960ecfab6f0310bdae49759c0fb1a5ab0`）。
 
 | 文件 | 作用 |
 |---|---|

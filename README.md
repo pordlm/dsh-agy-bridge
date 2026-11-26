@@ -38,6 +38,7 @@ Connects DeepSeek Harness to the local Antigravity CLI through the official `agy
    - `antigravity-bridge-preset`：配套预设条目。
 3. 打包说明：自 `0.5.1` 起，`package.json` 的 `files` 字段必须包含 `lib/uia-driver.ps1`，否则发布包会缺少桌面 UIA 驱动（触发 `desktop_driver_missing`）。
 4. 启用或更新 bundle 后，需要执行一次热重载：先关闭一次该 bundle，再重新开启，使最新配置与代码生效。
+5. 宿主兼容：**兼容 DSH 0.2.x（含 0.2.x 预发布，如 `0.2.2-rc.5`）**；`0.3.0-rc.x` 也落在 peer 兼容带内，但**未验证、不代表支持 0.3 正式版**。
 
 `cordis.patch.yml` 注入结构示例（含可选 `desktop` 段）：
 
@@ -191,7 +192,7 @@ node scripts/ui-gate.mjs
 
 ## 12. 版本与变更
 
-当前版本：**`0.5.4`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：**`0.5.5`**。完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 13. License
 

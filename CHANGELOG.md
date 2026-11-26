@@ -5,6 +5,14 @@ All notable changes to `dsh-agy-bridge` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-11-26
+
+### Fixed
+- `peerDependencies["@deepseek-ai/dsh-llm"]` 由 `>=0.2.1-rc.4` 改为逐 minor/patch 预发布分支 `>=0.2.0-0 || >=0.2.1-0 || >=0.2.2-0 || >=0.3.0-0`（`0.2.0`–`0.2.2` 三条 patch 线；未来 `0.2.3-rc.x` 需再补 `|| >=0.2.3-0`）；旧范围在默认 semver（npm/pnpm 安装校验）下不匹配预发布宿主 `0.2.2-rc.5`，会触发 ERESOLVE/peer 警告。
+
+### Changed
+- 版本号 `0.5.4` → `0.5.5`；明确仍只支持 DSH `0.2.x`（`0.3.0-rc.x` 通过属兼容带，不代表支持 `0.3` 正式版）。
+
 ## [0.5.4] - 2026-11-25
 
 ### Added
