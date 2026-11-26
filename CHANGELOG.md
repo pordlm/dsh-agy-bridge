@@ -5,6 +5,14 @@ All notable changes to `dsh-agy-bridge` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-11-26
+
+### Fixed
+- 补充 `engines.dsh`（与 `peerDependencies["@deepseek-ai/dsh-llm"]` 同范围 `>=0.2.0-0 || >=0.2.1-0 || >=0.2.2-0 || >=0.3.0-0`）：市场与清单侧优先/直接读取 `engines.dsh`（awesome-dsh-plugin 的 `scripts/lib/release-manifest.mjs:19`、npm 采集 `scripts/probe-npm.mjs:111`；dsh-market 的 `src/discovery-compatibility.ts:208`），此前缺少该字段时市场索引侧兼容性显示为未知，而 `peerDependencies` 仅用于安装侧 ERESOLVE 校验，两者口径不一致。
+
+### Changed
+- 版本号 `0.5.5` → `0.5.6`；再次声明仍只支持 DSH `0.2.x`（`0.3.0-rc.x` 属兼容带，不代表支持 `0.3` 正式版）。
+
 ## [0.5.5] - 2026-11-26
 
 ### Fixed

@@ -1,6 +1,6 @@
 {
   "name": "dsh-agy-bridge",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "private": false,
   "type": "module",
   "description": "Dual-channel Antigravity bridge for DeepSeek Harness: task tools, a Web panel with DSH session attachments, and an independent native agy ACP model provider (no Google upstream proxy).",
@@ -14,7 +14,8 @@
     "url": "https://github.com/pordlm/dsh-agy-bridge/issues"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22",
+    "dsh": ">=0.2.0-0 || >=0.2.1-0 || >=0.2.2-0 || >=0.3.0-0"
   },
   "exports": {
     ".": "./lib/index.js",

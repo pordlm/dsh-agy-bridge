@@ -272,6 +272,8 @@ profile 的启用是部署步骤，不由实现阶段执行。
 宿主 `peerDependencies["@deepseek-ai/dsh-llm"]` 采用逐 minor/patch 预发布分支
 `>=0.2.0-0 || >=0.2.1-0 || >=0.2.2-0 || >=0.3.0-0`，避免默认 `node-semver`（npm/pnpm 安装校验）因跨 minor 预发布元组不匹配而误报 `ERESOLVE`。
 本插件仍只支持 DSH `0.2.x`（`0.3.0-rc.x` 通过仅属兼容带，不代表支持 `0.3` 正式版）；后续若出现新的宿主 minor 线（`0.x.0`）或新的 patch 预发布线（如 `0.2.3-rc.x`），需同步补充 `|| >=0.x.0-0` / `|| >=0.2.3-0` 分支。
+`engines.dsh` 与 `peerDependencies["@deepseek-ai/dsh-llm"]` 保持同范围，读取方包括 awesome-dsh-plugin `scripts/lib/release-manifest.mjs:19`（`engines.dsh ?? dsh.engines.dsh`）与 `scripts/probe-npm.mjs:111`，以及 dsh-market `src/discovery-compatibility.ts:191/208/304-305`（`engine` 声明）。
+该字段只影响兼容性展示/校验；npm/pnpm 安装校验看 `peerDependencies`，不会因 `engines.dsh` 存在而让 `0.2.2-rc.5` 安装失败；DSH 安装器自身是否读取 `engines.dsh` 目前未证明。
 
 ## Harness 加载约束与部署预检
 
